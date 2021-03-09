@@ -6,33 +6,10 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install attrs
-# MAGIC %pip install urlpath
-
-# COMMAND ----------
-
-# Let's create some secrets, etc.
-# atabricks secrets create-scope --scope chris.bishop@thermofisher.com
-import getpass
-
-# dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-!databricks configure --token
-
-# COMMAND ----------
-
-# Create 
-import databricks_cli as db_cli
-
-# db_cli.workspace.api
-# databricks secrets create-scope --scope chris.bishop@thermofisher.com
-# !/local_disk0/.ephemeral_nfs/envs/pythonEnv-33bbd964-be51-4734-a844-254b39938c00/bin/databricks configure
-
-# COMMAND ----------
-
 # Let's setup the building blocks.
 import abc
 from attr import attrs, attrib
-from urllib.parse import urlsplit, ParseResult
+import urllib
 from pyspark.sql import SparkSession
 
 from urlpath import URL
@@ -53,6 +30,7 @@ class BaseConnection(abc.ABC):
     
     This can probably just be cached safely.
     """
+
     return location_builder.build(self.url)
 
   @property
@@ -68,7 +46,6 @@ class BaseConnection(abc.ABC):
       db=self.location.db
     )
 
-#   @abc.abstractmethod
   def read(self, spark=None, *largs, **kwargs):
     """
     All connections will have a `read` method, but the details
@@ -77,7 +54,6 @@ class BaseConnection(abc.ABC):
 
     raise NotImplemented
 
-#   @abc.abstractmethod
   def write(self, data, *largs, **kwargs):
     """
     All connections will have a write method, but details
@@ -375,11 +351,21 @@ class RedshiftConnection(BaseConnection):
 
   def read(
       self,
-      read_options=None,
       spark=None,
       *largs,
       **kwargs
     ):
+    """
+    Read method for redshift data sources.
+    
+    Named inputs are assumed to be read parameters
+    
+    Args:
+      spark (spark session): spark thingy
+    
+    Returns:
+      data (spark DF): the data, YO
+    """
 
     if spark is None:
       
@@ -392,20 +378,21 @@ class RedshiftConnection(BaseConnection):
         forward_spark_s3_credentials=True,
         url=self.jdbc_url,
         # This is the most questionable to me ... OK to use
-        # for multiple people? XXX
+        # for multiple people?
+        # XXX This should be set through a shared configuration
+        # file so other groups can use it
         tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
+        # By default, read everything from the table
         query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
-    _read_options = default_read_options
+    # We'll set the default read options then override with
+    # whatever the user wants
+    read_options = default_read_options
   
-    if read_options is not None:
-      
-      for option, value in read_options.items():
+    for option, value in kwargs.items():
 
-        _read_options[option] = value
-  
-    read_options = _read_options
+      read_options[option] = value
   
     # Initialize the reader
     reader = (
@@ -414,11 +401,12 @@ class RedshiftConnection(BaseConnection):
       .format("com.databricks.spark.redshift")
     )
     
-    # Set options
+    # Set options for the reader object
     for option, value in read_options.items():
       
       reader = reader.option(option, value)
 
+    # Finally, load the data and return a pyspark DF
     data = reader.load()
 
     return data
@@ -436,15 +424,62 @@ class OracleConnection(BaseConnection):
   Read from and write to S3 buckets.
   """
   
-  pass
+  @property
+  def jdbc_url(self):
+    
+    return f"jdbc:oracle:thin:{username}/{password}@//{hostname}:{portnumber}/{service_name}"
+
+  def read(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+  # XXX I'm copying and pasting code, need better abstraction
+
+    if spark is None:
+      
+      spark = SparkSession.builder.getOrCreate()
+
+    # Set default read options
+    default_read_options = dict(
+        user=self.location.username,
+        password=self.location.password,
+        url=self.jdbc_url,
+        # By default, read everything from the table
+        query=f'SELECT * FROM {self.location.schema}.{self.location.table}',
+        driver="oracle.jdbc.driver.OracleDriver",
+        # XXX Should we add in defaults for lowerbound, upper...
+      )
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    read_options = default_read_options
+
+    reader = spark.read.format('jdbc')
+
+    for option, value in kwargs.items():
+
+      read_options[option] = value
+
+    # Set options for the reader object
+    for option, value in read_options.items():
+
+      reader = reader.option(option, value)
+
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+    return data
 
 # Let's configure our builders
 location_builder = LocationBuilder()
 location_builder.register(('redshift',), DatabaseLocation)
+location_builder.register(('oracle',), DatabaseLocation)
 
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
 connection_builder.register(('redshift',), RedshiftConnection)
+connection_builder.register(('oracle',), OracleConnection)
 
 
 def build_connection(url, *largs, **kwargs):
@@ -458,27 +493,51 @@ def build_connection(url, *largs, **kwargs):
     connection (Connection): returns connection type object
   """
   
-  connection = connection_
-# url = 'redshift://user@host.com:1234/db.schema.table'
-# url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm.lsgds.sf_db_data__c'
-# url = 'redshift://Lsgds_Read:San#Jun202009_Pwd@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm.lsgds.sf_db_data__c'
-url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm.lsgds.sf_db_data__c'
-# url = 'redshift://user@cdwtst.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com/cdwtst.schema.test'
-# connection_builder = ConnectionBuilder()
+  # Leverage the builder
+  connection = connection_builder.build(url, *largs, **kwargs)
 
-
-
-
-# We'll want to return connection_builder and location_builder
-# when we package this up as a library
-
-# Let's register a new connection type
-# builder.register(('redshift',), Redshift)
-# x = DatabaseLocation('postgresql://user:mypw@host.com/db.schema.table')
+  return connection
 
 # COMMAND ----------
 
-# connection_builder.get_credentials(url)
+# Where are the data?
+url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm.lsgds.sf_db_data__c'
+
+# Test connectivity at database level
+url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm'
+# Create a connection using the API wrapper
+connection = build_connection(url)
+
+# # Read some data
+# data = connection.read(
+#   query='SELECT account_key__c FROM lsgds.sf_db_data__c LIMIT 10'
+# )
+
+# Let's get some credentials
+username = 'CDWREAD'# dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Username")
+password = 'CDWREAD1234' #dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Password")
+hostname = 'CDWPRD-rac-db.thermo.com'
+port: 1521
+portnumber = 1521
+service_name = 'cdwprd_users'
+schema = 'CDWREAD'
+
+# Let's try oracle
+url = f'oracle://user@{hostname}:{portnumber}/{service_name}'
+  
+# # connection = build_connection(url)
+# print(url)
+
+# # Let's do it
+connection = build_connection(url)
+
+data = connection.read(query='SELECT * FROM CDWREAD.T_PB')
+
+# connection_builder.build(url)
+
+# COMMAND ----------
+
+# data.show()
 
 # COMMAND ----------
 
@@ -501,14 +560,77 @@ url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.co
 
 connection = connection_builder.build(url)
 
-data = connection.read(read_options=dict(query="SELECT account_key__c FROM lsgds.sf_db_data__c LIMIT 10"))
+# data = connection.read(read_options=dict(query="SELECT account_key__c FROM lsgds.sf_db_data__c LIMIT 10"))
 # x = urlsplit(f'redshift://Lsgds_Read:San%23Jun202009_Pwd@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com:5439/rscdwdm.lsgds.sf_db_data__c')
 
 # x.port
 
 # COMMAND ----------
 
-data.show()
+data = connection.read(query='SELECT * FROM CDWREAD.T_PB')
+
+# COMMAND ----------
+
+import cx_Oracle
+import pandas as pd
+
+def read_edw(table_query,cache):
+  query = table_query
+
+  try:
+      cdw_con = cx_Oracle.connect(dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Username"), dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Password"), "edwsprd-rac-db.thermo.com/EDWPRD_USERS")
+  except Exception as e:
+      print(e)
+      print('Connection failed')
+  cdw_cur = cdw_con.cursor()
+  cdw_cur.execute(query)
+  result = cdw_cur.fetchall()
+  data = pd.DataFrame(result)
+  data.columns = [i[0] for i in cdw_cur.description]
+  out = spark.createDataFrame(data)
+  
+  if cache == True:
+    out.createOrReplaceTempView('output')
+    spark.sql('CACHE TABLE output')
+  
+  return out
+
+# Let's get some credentials
+username = 'CDWREAD'# dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Username")
+password = 'CDWREAD1234' #dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Password")
+hostname = 'CDWPRD-rac-db.thermo.com'
+port: 1521
+portnumber = 1521
+service_name = 'cdwprd_users'
+schema = 'CDWREAD'
+
+
+# [5:11 PM] Mohan, Bharath
+#     def conn_config(host,port,db,username,password):
+#   jdbcUrl = "jdbc:oracle:thin:@//{​​​​​​​0}​​​​​​​:{​​​​​​​1}​​​​​​​/{​​​​​​​2}​​​​​​​".format(host, port, db)
+#   connectionProperties = {​​​​​​​
+#     "user" : username,
+#     "password" : password,
+#     "driver" : "oracle.jdbc.driver.OracleDriver",
+#     "oracle.jdbc.timezoneAsRegion" : "false" }​​​​​​​
+#   return (jdbcUrl,connectionProperties)
+
+jdbc_url = f"jdbc:oracle:thin:{username}/{password}@//{hostname}:{portnumber}/{service_name}"
+
+data = (
+  spark.read
+  .format("jdbc")
+  .option("url", jdbc_url)
+  .option("query", 'SELECT * FROM CDWREAD.T_PB')
+  .option("user", username)
+  .option("password", password)
+  .option("driver", "oracle.jdbc.driver.OracleDriver")
+  .load()
+)
+
+# COMMAND ----------
+
+# data.show()
 
 # COMMAND ----------
 
