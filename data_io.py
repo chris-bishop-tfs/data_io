@@ -417,7 +417,49 @@ class S3Connection(BaseConnection):
   Read from and write to S3 buckets.
   """
   
-  pass
+  def read(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+
+    if spark is None:
+      
+      spark = SparkSession.builder.getOrCreate()
+  
+    # Set default read options
+    default_read_options = dict(
+      inferSchema=True,
+      header=True
+      # Need a nicer query to run against S3
+#         query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
+      )
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    read_options = default_read_options
+  
+    for option, value in kwargs.items():
+
+      read_options[option] = value
+  
+    # Initialize the reader
+    # Set reader format
+    reader = (
+      spark
+      .read
+    )
+
+    # Set options for the reader object
+    for option, value in read_options.items():
+      
+      reader = reader.option(option, value)
+    
+    data = reader.load(self.url)
+    
+    return data
+
 
 class OracleConnection(BaseConnection):
   """
@@ -469,17 +511,20 @@ class OracleConnection(BaseConnection):
 
     # Finally, load the data and return a pyspark DF
     data = reader.load()
+  
     return data
 
 # Let's configure our builders
 location_builder = LocationBuilder()
 location_builder.register(('redshift',), DatabaseLocation)
 location_builder.register(('oracle',), DatabaseLocation)
+location_builder.register(('s3a',), Location)
 
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
 connection_builder.register(('redshift',), RedshiftConnection)
 connection_builder.register(('oracle',), OracleConnection)
+connection_builder.register(('s3a',), S3Connection)
 
 
 def build_connection(url, *largs, **kwargs):
@@ -508,14 +553,6 @@ url = 'redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.co
 # Create a connection using the API wrapper
 connection = build_connection(url)
 
-# # Read some data
-# data = connection.read(
-#   query='SELECT account_key__c FROM lsgds.sf_db_data__c LIMIT 10'
-# )
-
-# Let's get some credentials
-username = 'CDWREAD'# dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Username")
-password = 'CDWREAD1234' #dbutils.secrets.get(scope="DSLSG_Scope",key="ORACLE_EDW_PRD_BM_Password")
 hostname = 'CDWPRD-rac-db.thermo.com'
 port: 1521
 portnumber = 1521
@@ -537,7 +574,25 @@ data = connection.read(query='SELECT * FROM CDWREAD.T_PB')
 
 # COMMAND ----------
 
-# data.show()
+url = 's3a://tfsds-lsg-test/model-output-archive/backup/DrugDiscovery_txns'
+
+connection = build_connection(url)
+
+# data = (
+#   spark
+#   .read
+#   .format('parquet')
+#   .option('inferSchema', True)
+#   .option('url', 's3a://tfsds-lsg-test/model-output-archive/backup/DrugDiscovery_txns')
+#   .load()
+# )
+# data = spark.read.parquet('s3a://tfsds-lsg-test/model-output-archive/backup/DrugDiscovery_txns')
+
+# data.printSchema()
+# connection = build_connection(url)
+data = connection.read()
+
+data.printSchema()
 
 # COMMAND ----------
 
