@@ -5,6 +5,7 @@ import abc
 from attr import attrs, attrib
 import urllib
 from pyspark.sql import SparkSession
+from pyspark.dbutils import DBUtils
 
 from urlpath import URL
 
@@ -182,7 +183,7 @@ class ConnectionBuilder(URLKeyBuilder):
     """
     Build a connection and return it
     """
-
+  
     # Get the key
     url_key = self.build_url_key(url)
 
@@ -235,6 +236,15 @@ class ConnectionBuilder(URLKeyBuilder):
     """
     
     if scope is None:
+
+      # Need to get the active spark session
+      # XXX Bishop should harden how we retrieve
+      # spark session
+      spark = SparkSession.builder.getOrCreate()
+
+      # Create dbutils object so we can get the user name
+      dbutils = DBUtils(spark)
+
       # XXX This is almost certainly going to break
       # when we move this code out of a notebook.
       # Reference: https://kb.databricks.com/notebooks/get-notebook-username.html
