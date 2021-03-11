@@ -7,7 +7,7 @@ from setuptools import setup
 setup(
     name='data_io',
     # Hard code for now
-    version='0.0.4',
+    version='0.0.6',
     description='Standardize data IO at Thermo Fisher',
     author='Christopher Bishop',
     author_email='chris.bishop@thermofisher.com',

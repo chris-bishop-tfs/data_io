@@ -299,7 +299,7 @@ class ConnectionBuilder(URLKeyBuilder):
     # Credentials are now stored as a larger cfg file
     # Let's read that in
     # Let's get the new credentials.cfg
-    config_file = self.get_seceret('credentials.cfg')
+    config_file = self.get_secret('credentials.cfg')
     
     # Convert to a file-like object
     config_buffer = io.StringIO(config_file)
