@@ -23,7 +23,7 @@ databricks secrets create-scope --scope <first name>.<last name>
 # Cache username and password for back end
 # Note that user@ is intentional. More on this later
 databricks secrets put --scope <first name>.<last name> --key "redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com/rscdwdm-username"
-databricks secrets put --scope <first name>.<last name> --key ""redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com/rscdwdm-password""
+databricks secrets put --scope <first name>.<last name> --key "redshift://user@rs-cdwdm-prd.c7cbvhc6rtn1.us-east-1.redshift.amazonaws.com/rscdwdm-password"
 
 # A second example with an Oracle database
 databricks secrets put --scope <first name>.<last name> --key "oracle://user@CDWPRD-rac-db.thermo.com/cdwprd_users-username"
