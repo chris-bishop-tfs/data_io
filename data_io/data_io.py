@@ -2,11 +2,12 @@
 
 # Let's setup the building blocks.
 import abc
+import io
 from attr import attrs, attrib
 import urllib
 from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
-
+from configparser import ConfigParser
 from urlpath import URL
 
 @attrs
@@ -295,12 +296,21 @@ class ConnectionBuilder(URLKeyBuilder):
     # Makes formatted strings below nicer to work with
     cred_base = f"{location.scheme}://user@{location.hostname}/{location.db}"
   
-    # Hard coding here is a bit sloppy, but fine for MVP
-    username_key = cred_base + '-username'
-    password_key = cred_base + '-password'
+    # Credentials are now stored as a larger cfg file
+    # Let's read that in
+    # Let's get the new credentials.cfg
+    config_file = self.get_seceret('credentials.cfg')
+    
+    # Convert to a file-like object
+    config_buffer = io.StringIO(config_file)
 
-    username = self.get_secret(username_key)
-    password = self.get_secret(password_key)
+    # Create a parser
+    config_parser = ConfigParser()
+    config_parser.read_file(config_buffer)
+
+    # Retrieve username
+    username = config_parser.get(cred_base, 'username')
+    password = config_parser.get(cred_base, 'password')
 
     return username, password
 
