@@ -144,7 +144,7 @@ class URLKeyBuilder(BaseBuilder):
   
   Bishop ended up needing to build identical keys for
   both Location and Connection builders. So, it made
-  made more sense to centralize the functionality
+  more sense to centralize the functionality
   """
 
   def __init__(self, *largs, **kwargs):
@@ -188,16 +188,17 @@ class ConnectionBuilder(URLKeyBuilder):
     # Get the key
     url_key = self.build_url_key(url)
 
-    # Add logic to lookup credentials etc.
-    # XXX
+    # Generate a location object. This describes where the data are
     location = location_builder.build(url)
 
-    # Let's get the handler so we can do some
-    # conditional checks
+    # Let's get the handler so we can do some conditional checks
     connection_class = self.get_handler(url_key)
 
     # We'll need to expand this check as we add other types of
     # connections that require authentication.
+    #
+    # At time of writing, the logic here should support JDBC connections
+    # like Redshift/Oracle
     if isinstance(location, DatabaseLocation):
       """
       Grab connection information from stored config file.
@@ -239,16 +240,14 @@ class ConnectionBuilder(URLKeyBuilder):
     if scope is None:
 
       # Need to get the active spark session
-      # XXX Bishop should harden how we retrieve
-      # spark session
       spark = SparkSession.builder.getOrCreate()
 
       # Create dbutils object so we can get the user name
+      # This enables the package to function outside of a notebook
       dbutils = DBUtils(spark)
 
-      # XXX This is almost certainly going to break
-      # when we move this code out of a notebook.
       # Reference: https://kb.databricks.com/notebooks/get-notebook-username.html
+      # XXX Note: assumes user@ in URL, but this might not be true moving forward
       scope = (
         dbutils
         .notebook
@@ -294,21 +293,22 @@ class ConnectionBuilder(URLKeyBuilder):
     location = location_builder.build(url)
   
     # Makes formatted strings below nicer to work with
+    # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
     cred_base = f"{location.scheme}://user@{location.hostname}/{location.db}"
   
-    # Credentials are now stored as a larger cfg file
-    # Let's read that in
     # Let's get the new credentials.cfg
+    # XXX Hard-coded credentials file name. Sloppy, Bishop. Sloppy.
     config_file = self.get_secret('credentials.cfg')
-    
+
     # Convert to a file-like object
     config_buffer = io.StringIO(config_file)
 
-    # Create a parser
+    # Create a parser so we can strip out the information we need
     config_parser = ConfigParser()
     config_parser.read_file(config_buffer)
 
     # Retrieve username
+    # Hard-coding OK here.
     username = config_parser.get(cred_base, 'username')
     password = config_parser.get(cred_base, 'password')
 
@@ -317,8 +317,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
 class LocationBuilder(URLKeyBuilder):
   """
-  Ingest a URL and return the correct kind of location
-  object
+  Location Builder generates a location from a fully qualified URL
   """
 
   def __init__(self, *largs, **kwargs):
@@ -381,27 +380,14 @@ class DatabaseLocation(Location):
     else:
       raise NotImplemented
 
-# # Other stubs
-# class S3Location(Location):
-  
-#   pass
 
-# class FileLocation(Location):
-  
-#   pass
 class RedshiftConnection(BaseConnection):
   """
   Redshift connector
   
-  XXX How do we specify underlying S3 bucket?
-  XXX Do we need to specify it?
-  XXX If so, can we detect the underlying bucket
-  XXX automatically> No idea. need to deal with this
+  XXX Temporary S3 bucket is hard-coded. It will break with other roles.
+  XXX Needs hardening.
   """
-
-  def write(self):
-    
-    pass
 
   def read(
       self,
@@ -465,12 +451,63 @@ class RedshiftConnection(BaseConnection):
 
     return data
 
+  def write(
+    self,
+    data,
+    *largs,
+    **kwargs
+  ):
+
+    # Set default options
+    # XXX Spark's write API is not homogenous,
+    # so we're going to force it to be
+    default_write_options = dict(
+        format="com.databricks.spark.redshift",
+        url=self.jdbc_url,
+        user=self.location.username,
+        password=self.location.password,
+        dbtable=f"{self.location.schema}.{self.location.table}",
+        forward_spark_s3_credentials=True,
+        tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
+        mode='default'
+      )
+
+    writer = data.write
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    write_options = default_write_options
+  
+    for option, value in kwargs.items():
+
+      write_options[option] = value
+
+    # Set format and mode
+    writer = (
+      writer
+      .format(write_options['format'])
+      .mode(write_options['mode'])
+    )
+
+    # Remove format/mode so we can set options intelligenly
+    write_options.pop('format', None)
+    write_options.pop('mode', None)
+
+    # Set options for the reader object
+    for option, value in write_options.items():
+      
+      writer = writer.option(option, value)
+
+    writer.save()
+
+    return None
+  
 
 class S3Connection(BaseConnection):
   """
-  Read from and write to S3 buckets.
+  Read form and write to S3 buckets.
   """
-  
+
   def read(
     self,
     spark=None,
@@ -512,6 +549,51 @@ class S3Connection(BaseConnection):
     
     return data
 
+  def write(
+    self,
+    data,
+    *largs,
+    **kwargs
+  ):
+
+    # Set default options
+    # XXX Spark's write API is not homogenous,
+    # so we're going to force it to be
+    default_write_options = dict(
+        mode='default',
+        # We'll write to CSV by default ... parquet apparently
+        # does not fit into the standard write API.
+        # Thanks, databricks. Thanks.
+        # XXX Can make this part of a group-level config file
+        format="com.databricks.spark.csv"
+      )
+
+    writer = data.write
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    write_options = default_write_options
+  
+    for option, value in kwargs.items():
+
+      write_options[option] = value
+
+    # Set options for the reader object
+    for option, value in write_options.items():
+      
+      writer = writer.option(option, value)
+    
+    # XXX This does not fully support other
+    # options at the moment. Needs fixing
+    (
+      writer
+      .mode(write_options['mode'])
+      .format(write_options['format'])
+      .save(self.url)
+    )
+    
+    return None 
+
 
 class OracleConnection(BaseConnection):
   """
@@ -520,8 +602,11 @@ class OracleConnection(BaseConnection):
   
   @property
   def jdbc_url(self):
-    
-    return f"jdbc:oracle:thin:{username}/{password}@//{hostname}:{portnumber}/{service_name}"
+
+    location = self.location
+
+    # XXX `thin` driver hard-coded. Should make this smarter later.
+    return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
 
   def read(
     self,
@@ -532,6 +617,9 @@ class OracleConnection(BaseConnection):
   # XXX I'm copying and pasting code, need better abstraction.
   # Suggest an intermediate class with default read behavior or
   # read behavior.
+  #
+  # Looking for functional code before I make it pretty/follow better
+  # SWE principles.
 
     if spark is None:
       
@@ -567,6 +655,52 @@ class OracleConnection(BaseConnection):
     data = reader.load()
   
     return data
+
+  def write(
+    self,
+    data,
+    *largs,
+    **kwargs
+  ):
+
+    # Set default options
+    # XXX Spark's write API is not homogenous,
+    # so we're going to force it to be
+    default_write_options = dict(
+        mode='default',
+        # We'll write to CSV by default ... parquet apparently
+        # does not fit into the standard write API.
+        # Thanks, databricks. Thanks.
+        driver="oracle.jdbc.driver.OracleDriver"
+      )
+
+    writer = data.write
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    write_options = default_write_options
+  
+    for option, value in kwargs.items():
+
+      write_options[option] = value
+
+    # Set options for the reader object
+    for option, value in write_options.items():
+      
+      writer = writer.option(option, value)
+    
+    # XXX This does not fully support other
+    # options at the moment. Needs fixing
+    (
+      writer
+      .mode(write_options['mode'])
+      .jdbc(
+        self.jdbc_url,
+        self.location.table
+      )
+    )
+
+    return None  
 
 # Let's configure our builders
 location_builder = LocationBuilder()
