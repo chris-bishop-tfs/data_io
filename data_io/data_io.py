@@ -423,7 +423,8 @@ class RedshiftConnection(BaseConnection):
         # file so other groups can use it
         tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
         # By default, read everything from the table
-        query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
+        dbtable=self.location.table
+        # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
     # We'll set the default read options then override with
@@ -631,7 +632,10 @@ class OracleConnection(BaseConnection):
         password=self.location.password,
         url=self.jdbc_url,
         # By default, read everything from the table
-        query=f'SELECT * FROM {self.location.schema}.{self.location.table}',
+        dbtable=self.location.table,
+        # Passing in a query by default causes issues when partitioning
+        # data during read phase.
+        # query=f'SELECT * FROM {self.location.schema}.{self.location.table}',
         driver="oracle.jdbc.driver.OracleDriver",
         # XXX Should we add in defaults for lowerbound, upper...
       )
