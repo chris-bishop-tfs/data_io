@@ -423,7 +423,7 @@ class RedshiftConnection(BaseConnection):
         # file so other groups can use it
         tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
         # By default, read everything from the table
-        dbtable=self.location.table
+        # dbtable=f'{self.location.schema}.{self.location.table}'
         # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
@@ -435,6 +435,11 @@ class RedshiftConnection(BaseConnection):
 
       read_options[option] = value
   
+    # This is clunky, but we needed a way to support query/dbtable
+    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
+
+      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
+
     # Initialize the reader
     reader = (
       spark
@@ -467,7 +472,7 @@ class RedshiftConnection(BaseConnection):
         url=self.jdbc_url,
         user=self.location.username,
         password=self.location.password,
-        dbtable=f"{self.location.schema}.{self.location.table}",
+        # dbtable=f"{self.location.schema}.{self.location.table}",
         forward_spark_s3_credentials=True,
         tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
         mode='default'
@@ -562,11 +567,7 @@ class S3Connection(BaseConnection):
     # so we're going to force it to be
     default_write_options = dict(
         mode='default',
-        # We'll write to CSV by default ... parquet apparently
-        # does not fit into the standard write API.
-        # Thanks, databricks. Thanks.
-        # XXX Can make this part of a group-level config file
-        format="com.databricks.spark.csv"
+        format="parquet"
       )
 
     writer = data.write
@@ -631,13 +632,9 @@ class OracleConnection(BaseConnection):
         user=self.location.username,
         password=self.location.password,
         url=self.jdbc_url,
-        # By default, read everything from the table
-        dbtable=self.location.table,
-        # Passing in a query by default causes issues when partitioning
-        # data during read phase.
-        # query=f'SELECT * FROM {self.location.schema}.{self.location.table}',
-        driver="oracle.jdbc.driver.OracleDriver",
-        # XXX Should we add in defaults for lowerbound, upper...
+        # For faster reads
+        fetchsize=10000,
+        driver="oracle.jdbc.driver.OracleDriver"
       )
 
     # We'll set the default read options then override with
@@ -649,6 +646,11 @@ class OracleConnection(BaseConnection):
     for option, value in kwargs.items():
 
       read_options[option] = value
+
+    # This is clunky, but we needed a way to support query/dbtable
+    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
+
+      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
 
     # Set options for the reader object
     for option, value in read_options.items():
