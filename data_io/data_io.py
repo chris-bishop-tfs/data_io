@@ -632,13 +632,9 @@ class OracleConnection(BaseConnection):
         user=self.location.username,
         password=self.location.password,
         url=self.jdbc_url,
-        # By default, read everything from the table
-        # dbtable=f'{self.location.schema}.{self.location.table}',
-        # Passing in a query by default causes issues when partitioning
-        # data during read phase.
-        # query=f'SELECT * FROM {self.location.schema}.{self.location.table}',
+        # For faster reads
+        fetchsize=10000,
         driver="oracle.jdbc.driver.OracleDriver"
-        # XXX Should we add in defaults for lowerbound, upper...
       )
 
     # We'll set the default read options then override with
