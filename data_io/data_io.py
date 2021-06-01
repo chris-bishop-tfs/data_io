@@ -7,7 +7,7 @@ from attr import attrs, attrib
 import urllib
 from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
-from configparser import ConfigParser
+from configparser import RawConfigParser
 from urlpath import URL
 
 @attrs
@@ -304,7 +304,10 @@ class ConnectionBuilder(URLKeyBuilder):
     config_buffer = io.StringIO(config_file)
 
     # Create a parser so we can strip out the information we need
-    config_parser = ConfigParser()
+    # 2021-05-11 CWB: changed config parser to RawConfigParser to
+    # bypass interpolation.
+    # https://stackoverflow.com/questions/14340366/configparser-and-string-with
+    config_parser = RawConfigParser()
     config_parser.read_file(config_buffer)
 
     # Retrieve username
