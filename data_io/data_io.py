@@ -471,6 +471,7 @@ class RedshiftConnection(BaseConnection):
     self,
     data,
     *largs,
+    format='parque',
     **kwargs
   ):
 
