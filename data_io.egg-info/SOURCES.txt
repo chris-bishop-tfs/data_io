@@ -1,0 +1,8 @@
+README.md
+setup.py
+data_io/__init__.py
+data_io/data_io.py
+data_io.egg-info/PKG-INFO
+data_io.egg-info/SOURCES.txt
+data_io.egg-info/dependency_links.txt
+data_io.egg-info/top_level.txt

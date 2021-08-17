@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: data-io
+Version: 0.0.13
+Summary: Standardize data IO at Thermo Fisher
+Home-page: https://github.com/chris-bishop-tfs/data_io
+Author: Christopher Bishop
+Author-email: chris.bishop@thermofisher.com
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: jupyter mapreduce nteract pipeline notebook
+Platform: UNKNOWN
