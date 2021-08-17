@@ -176,7 +176,7 @@ class ConnectionBuilder(URLKeyBuilder):
     - Write connection class
     - Register with builder
   """
-
+  
   def __init__(self, *largs, **kwargs):
     super(URLKeyBuilder, self).__init__()
 
@@ -322,6 +322,7 @@ class LocationBuilder(URLKeyBuilder):
   """
   Location Builder generates a location from a fully qualified URL
   """
+  
 
   def __init__(self, *largs, **kwargs):
     super(URLKeyBuilder, self).__init__()
@@ -335,6 +336,12 @@ class LocationBuilder(URLKeyBuilder):
 
     # Get the location object
     location = location_class(url)
+    '''this is giving a default port for redshift and orracle'''
+    if((str(location.scheme) == 'oracle') and (location.port is None)):
+      location.port = 1521
+    elif((str(location.scheme) == 'redshift') and (location.port is None)):
+      location.port = 5439
+
     
     return location
 
