@@ -336,7 +336,9 @@ class LocationBuilder(URLKeyBuilder):
 
     # Get the location object
     location = location_class(url)
-    '''this is giving a default port for redshift and orracle'''
+    '''
+    this is giving a default port for redshift and orracle
+    '''
     if((str(location.scheme) == 'oracle') and (location.port is None)):
       location.port = 1521
     elif((str(location.scheme) == 'redshift') and (location.port is None)):
