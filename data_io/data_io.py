@@ -3,7 +3,7 @@
 # Let's setup the building blocks.
 import abc
 import io
-from attr import attrs, attrib
+from attr import attrib, attrs
 import urllib
 from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
@@ -19,8 +19,9 @@ class BaseConnection(abc.ABC):
   Note: Connections should not be initialized directly. Use the builders
   or higher-level APIs instead.
   """
-
   url = attrib(default=None)
+  # def __init__(self):
+  #   self.url = attrib(default=None)
 
   @property
   def location(self):
@@ -32,6 +33,25 @@ class BaseConnection(abc.ABC):
 
     return location_builder.build(self.url)
 
+  """
+  setter function hopfully can get username now
+  """
+
+  """
+  get username
+  """
+
+  # @property
+  # def username(self):
+  #   return self.url.username
+
+  # """
+  # setting username
+  # """
+  # @location.setter
+  # def set_location(self, url):
+  #   self.url = URL(url)
+
   @property
   def jdbc_url(self):
     """
@@ -40,13 +60,42 @@ class BaseConnection(abc.ABC):
     JDBC connection string. Specific connections might require modification
     but this should cover the bulk of LSG's use cases.
     """
+    if((self.location.scheme == 'oracle') and (self.location.port is None)):
+      port = 1521
+    elif((self.location.scheme == 'redshift') and (self.location.port is None)):
+      port = 5439
+    else:
+      port = self.location.port
 
     return "jdbc:{scheme}://{hostname}:{port}/{db}".format(
       scheme=self.location.scheme,
       hostname=self.location.hostname,
-      port=self.location.port,
+      port=port,
       db=self.location.db
     )
+
+  """
+  if port is missing setting port
+  """
+  @jdbc_url.setter
+  def jdbc_url(self):
+    """
+    incase there is not a port
+    """
+    if((self.location.scheme == 'oracle') and (self.location.port is None)):
+      port = 1521
+    elif((self.location.scheme == 'redshift') and (self.location.port is None)):
+      port = 5439
+    else:
+      port = self.location.port
+    
+    return "jdbc:{scheme}://{hostname}:{port}/{db}".format(
+      scheme=self.location.scheme,
+      hostname=self.location.hostname,
+      port=port,
+      db=self.location.db
+    )
+    
 
   def read(
       self,
@@ -164,8 +213,9 @@ class URLKeyBuilder(BaseBuilder):
     #
     #  KISS and use protocol only to start
     url_key = (location.scheme,)
-
+    # include username
     return url_key
+
 
 
 class ConnectionBuilder(URLKeyBuilder):
@@ -186,8 +236,9 @@ class ConnectionBuilder(URLKeyBuilder):
     """
   
     # Get the key
-    url_key = self.build_url_key(url)
-
+    url_key= self.build_url_key(url)
+    # get username
+    username = URL(url)
     # Generate a location object. This describes where the data are
     location = location_builder.build(url)
 
@@ -213,7 +264,7 @@ class ConnectionBuilder(URLKeyBuilder):
       _url = (
         url
         .replace(
-          'user@',
+          f'{username}@',
           f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
         )
       )
@@ -290,11 +341,17 @@ class ConnectionBuilder(URLKeyBuilder):
     
     # Figure out the relevant base string for the
     # username and credentials.
+    # switching up code that I tested
     location = location_builder.build(url)
+    # getting important elemnet for url holding off for right now
+    # username = URL(url).username
+    # db = location.path.split('/')[1].split('.')[0]
   
     # Makes formatted strings below nicer to work with
     # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
-    cred_base = f"{location.scheme}://user@{location.hostname}/{location.db}"
+    cred_base = f"{location.scheme}://{location.user}@{location.hostname}/{location.db}"
+    # holding off right now
+    # cred_base = f"{location.scheme}://{location.username}@{location.hostname}/{db}"
   
     # Let's get the new credentials.cfg
     # XXX Hard-coded credentials file name. Sloppy, Bishop. Sloppy.
@@ -311,11 +368,11 @@ class ConnectionBuilder(URLKeyBuilder):
     config_parser.read_file(config_buffer)
 
     # Retrieve username
-    # Hard-coding OK here.
-    username = config_parser.get(cred_base, 'username')
+    # Hard-coding OK here. user is no longer hardcoded
+    # username = username
     password = config_parser.get(cred_base, 'password')
 
-    return username, password
+    return location.user, password
 
 
 class LocationBuilder(URLKeyBuilder):
@@ -336,16 +393,21 @@ class LocationBuilder(URLKeyBuilder):
 
     # Get the location object
     location = location_class(url)
+    return location
+
+    
     '''
     this is giving a default port for redshift and orracle
     '''
-    if((str(location.scheme) == 'oracle') and (location.port is None)):
-      location.port = 1521
-    elif((str(location.scheme) == 'redshift') and (location.port is None)):
-      location.port = 5439
+  # def set_port(self, url):
+
+  #   if((str(self.scheme) == 'oracle') and (URL(url).port is None)):
+  #     self.port = 1521
+  #   elif((str(self.scheme) == 'redshift') and (URL(url).port is None)):
+  #     self.port = 5439
 
     
-    return location
+    # return location
 
 
 class Location(URL):
@@ -373,6 +435,8 @@ class DatabaseLocation(Location):
     # databases
     # XXX
     path_split = self.path.replace('/', '').split('.')
+    # getting username
+    self.user = self.username
     
     # Need some conditional formatting here
     if len(path_split) == 3:
@@ -391,6 +455,11 @@ class DatabaseLocation(Location):
       self.schema = self.table = None
     else:
       raise NotImplemented
+
+  # def set_username(self):
+
+  #   self.username = self.username
+
 
 
 class RedshiftConnection(BaseConnection):
@@ -619,9 +688,15 @@ class OracleConnection(BaseConnection):
   def jdbc_url(self):
 
     location = self.location
-
+    # incase there is not a port number
+    if((location.scheme == 'oracle') and (location.port is None)):
+      port = 1521
+    elif((location.scheme == 'redshift') and (location.port is None)):
+      port = 5439
+    else:
+      port = location.port
     # XXX `thin` driver hard-coded. Should make this smarter later.
-    return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
+    return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{port}/{location.db}"
 
   def read(
     self,
