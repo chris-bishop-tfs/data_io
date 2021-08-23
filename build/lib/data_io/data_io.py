@@ -3,6 +3,7 @@
 # Let's setup the building blocks.
 import abc
 import io
+from os import read
 from attr import attrib, attrs
 import urllib
 from pyspark.sql import SparkSession
@@ -538,6 +539,21 @@ class RedshiftConnection(BaseConnection):
 
     return data
 
+  """
+  check if table exsit
+  """
+  def exists(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+    try:
+      df = self.read()
+      print(True)
+    except:
+      print(False)
+
   def write(
     self,
     data,
@@ -636,6 +652,21 @@ class S3Connection(BaseConnection):
     data = reader.load(self.url)
     
     return data
+
+  """
+  check if table exsit
+  """
+  def exists(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+    try:
+      df = self.read()
+      print(True)
+    except:
+      print(False)
 
   def write(
     self,
@@ -750,6 +781,22 @@ class OracleConnection(BaseConnection):
   
     return data
 
+  """
+  check if table exsit
+  """
+  def exists(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+    try:
+      df = self.read()
+      print(True)
+    except:
+      print(False)
+
+
   def write(
     self,
     data,
@@ -825,3 +872,5 @@ def build_connection(url, *largs, **kwargs):
   connection = connection_builder.build(url, *largs, **kwargs)
 
   return connection
+
+
