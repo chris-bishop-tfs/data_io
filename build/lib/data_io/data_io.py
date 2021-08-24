@@ -540,8 +540,22 @@ class RedshiftConnection(BaseConnection):
     return data
 
   """
-  check if table exsit
+  check if table has data
   """
+
+  def has_data(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+
+    df = self.read()
+    print(len(df.head(1)) != 0)
+
+    """
+    check if table exsit
+    """
   def exists(
     self,
     spark=None,
@@ -652,6 +666,20 @@ class S3Connection(BaseConnection):
     data = reader.load(self.url)
     
     return data
+
+  """
+  check if table has data
+  """
+
+  def has_data(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+
+    df = self.read()
+    print(len(df.head(1)) != 0)
 
   """
   check if table exsit
@@ -780,6 +808,20 @@ class OracleConnection(BaseConnection):
     data = reader.load()
   
     return data
+
+  """
+  check if table has data
+  """
+
+  def has_data(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+
+    df = self.read()
+    print(len(df.head(1)) != 0)
 
   """
   check if table exsit
