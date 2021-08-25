@@ -737,6 +737,138 @@ class S3Connection(BaseConnection):
     
     return None 
 
+class dbfsConnection(BaseConnection):
+  """
+  Read form and write to read dfs.
+  """
+
+  def read(
+    self,
+    spark=None,
+    format = 'parquet',
+    inferSchema=True,
+    header=True,
+    *largs,
+    **kwargs
+  ):
+
+    if spark is None:
+      
+      spark = SparkSession.builder.getOrCreate()
+  
+    # Set default read options
+    default_read_options = dict(
+        inferSchema=True,
+        header=True,
+        format = format
+      )
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    read_options = default_read_options
+  
+    for option, value in kwargs.items():
+
+      read_options[option] = value
+  
+    # Initialize the reader
+    # Set reader format
+    reader = (
+      spark
+      .read
+    )
+
+    # Set options for the reader object
+    for option, value in read_options.items():
+      
+      reader = reader.option(option, value)
+    
+    if(format=='parquet'):
+      data = spark.read.parquet(self.url, header=header, inferSchema=inferSchema)
+    else:
+      data = spark.read.csv(self.url, header=header, inferSchema=inferSchema)
+
+    # have not been able to use this
+    # data = reader.load(self.url)
+    
+    return data
+
+  """
+  check if table has data
+  """
+
+  def has_data(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+
+    df = self.read()
+    print(len(df.head(1)) != 0)
+
+  """
+  check if table exsit
+  """
+  def exists(
+    self,
+    spark=None,
+    *largs,
+    **kwargs
+  ):
+    try:
+      df = self.read()
+      print(True)
+    except:
+      print(False)
+
+  def write(
+    self,
+    data,
+    format = 'parquet',
+    # mode = 'overwrite',
+    *largs,
+    **kwargs
+  ):
+
+    # Set default options
+    # XXX Spark's write API is not homogenous,
+    # so we're going to force it to be
+    default_write_options = dict(
+        mode='default',
+        format=format
+      )
+
+    writer = data.write
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    write_options = default_write_options
+  
+    for option, value in kwargs.items():
+
+      write_options[option] = value
+
+    # Set options for the reader object
+    for option, value in write_options.items():
+      
+      writer = writer.option(option, value)
+    
+    # XXX This does not fully support other
+    # options at the moment. Needs fixing
+    # if(format=='parquet'):
+    #   data = spark.write.mode(mode).parquet(self.url)
+    # else:
+    #   data = spark.write.mode(mode).csv(self.url)
+    (
+      writer
+      .mode(write_options['mode'])
+      .format(write_options['format'])
+      .save(self.url)
+    )
+    
+    return None
+
 
 class OracleConnection(BaseConnection):
   """
@@ -890,12 +1022,14 @@ location_builder = LocationBuilder()
 location_builder.register(('redshift',), DatabaseLocation)
 location_builder.register(('oracle',), DatabaseLocation)
 location_builder.register(('s3a',), Location)
+location_builder.register(('dbfs',), Location)
 
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
 connection_builder.register(('redshift',), RedshiftConnection)
 connection_builder.register(('oracle',), OracleConnection)
 connection_builder.register(('s3a',), S3Connection)
+connection_builder.register(('dbfs',), dbfsConnection)
 
 
 def build_connection(url, *largs, **kwargs):
