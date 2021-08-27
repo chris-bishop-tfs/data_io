@@ -584,7 +584,7 @@ class RedshiftConnection(BaseConnection):
         url=self.jdbc_url,
         user=self.location.username,
         password=self.location.password,
-        # dbtable=f"{self.location.schema}.{self.location.table}",
+        dbtable=f"{self.location.schema}.{self.location.table}",
         forward_spark_s3_credentials=True,
         tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
         mode='default'
