@@ -34,24 +34,6 @@ class BaseConnection(abc.ABC):
 
     return location_builder.build(self.url)
 
-  """
-  setter function hopfully can get username now
-  """
-
-  """
-  get username
-  """
-
-  # @property
-  # def username(self):
-  #   return self.url.username
-
-  # """
-  # setting username
-  # """
-  # @location.setter
-  # def set_location(self, url):
-  #   self.url = URL(url)
 
   @property
   def jdbc_url(self):
@@ -347,10 +329,10 @@ class ConnectionBuilder(URLKeyBuilder):
     # getting important elemnet for url holding off for right now
     # username = URL(url).username
     # db = location.path.split('/')[1].split('.')[0]
-  
+    username = URL(url).username
     # Makes formatted strings below nicer to work with
     # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
-    cred_base = f"{location.scheme}://{location.user}@{location.hostname}/{location.db}"
+    cred_base = f"{location.scheme}://{username}@{location.hostname}/{location.db}"
     # holding off right now
     # cred_base = f"{location.scheme}://{location.username}@{location.hostname}/{db}"
   
@@ -373,7 +355,7 @@ class ConnectionBuilder(URLKeyBuilder):
     # username = username
     password = config_parser.get(cred_base, 'password')
 
-    return location.user, password
+    return username, password
 
 
 class LocationBuilder(URLKeyBuilder):
@@ -437,7 +419,7 @@ class DatabaseLocation(Location):
     # XXX
     path_split = self.path.replace('/', '').split('.')
     # getting username
-    self.user = self.username
+    self.username_ = self.username
     
     # Need some conditional formatting here
     if len(path_split) == 3:
