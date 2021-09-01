@@ -533,7 +533,7 @@ class RedshiftConnection(BaseConnection):
   ):
 
     df = self.read()
-    print(len(df.head(1)) != 0)
+    return len(df.head(1)) != 0
 
     """
     check if table exsit
@@ -546,9 +546,9 @@ class RedshiftConnection(BaseConnection):
   ):
     try:
       df = self.read()
-      print(True)
+      return True
     except:
-      print(False)
+      return False
 
   def write(
     self,
@@ -674,9 +674,9 @@ class S3Connection(BaseConnection):
   ):
     try:
       df = self.read()
-      print(True)
+      return True
     except:
-      print(False)
+      return False
 
   def write(
     self,
@@ -787,7 +787,7 @@ class dbfsConnection(BaseConnection):
   ):
 
     df = self.read()
-    print(len(df.head(1)) != 0)
+    return len(df.head(1)) != 0
 
   """
   check if table exsit
@@ -800,9 +800,9 @@ class dbfsConnection(BaseConnection):
   ):
     try:
       df = self.read()
-      print(True)
+      return True
     except:
-      print(False)
+      return False
 
   def write(
     self,
@@ -935,7 +935,7 @@ class OracleConnection(BaseConnection):
   ):
 
     df = self.read()
-    print(len(df.head(1)) != 0)
+    return len(df.head(1)) != 0
 
   """
   check if table exsit
@@ -948,9 +948,9 @@ class OracleConnection(BaseConnection):
   ):
     try:
       df = self.read()
-      print(True)
+      return True
     except:
-      print(False)
+      return False
 
 
   def write(
