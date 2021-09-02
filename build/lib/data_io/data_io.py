@@ -3,7 +3,6 @@
 # Let's setup the building blocks.
 import abc
 import io
-from os import read
 from attr import attrib, attrs
 import urllib
 from pyspark.sql import SparkSession
@@ -43,17 +42,11 @@ class BaseConnection(abc.ABC):
     JDBC connection string. Specific connections might require modification
     but this should cover the bulk of LSG's use cases.
     """
-    if((self.location.scheme == 'oracle') and (self.location.port is None)):
-      port = 1521
-    elif((self.location.scheme == 'redshift') and (self.location.port is None)):
-      port = 5439
-    else:
-      port = self.location.port
 
     return "jdbc:{scheme}://{hostname}:{port}/{db}".format(
       scheme=self.location.scheme,
       hostname=self.location.hostname,
-      port=port,
+      port=self.location.port,
       db=self.location.db
     )
 
@@ -62,20 +55,12 @@ class BaseConnection(abc.ABC):
   """
   @jdbc_url.setter
   def jdbc_url(self):
-    """
-    incase there is not a port
-    """
-    if((self.location.scheme == 'oracle') and (self.location.port is None)):
-      port = 1521
-    elif((self.location.scheme == 'redshift') and (self.location.port is None)):
-      port = 5439
-    else:
-      port = self.location.port
+
     
     return "jdbc:{scheme}://{hostname}:{port}/{db}".format(
       scheme=self.location.scheme,
       hostname=self.location.hostname,
-      port=port,
+      port=self.location.port,
       db=self.location.db
     )
     
@@ -221,7 +206,7 @@ class ConnectionBuilder(URLKeyBuilder):
     # Get the key
     url_key= self.build_url_key(url)
     # get username
-    username = URL(url)
+    url_acces = URL(url)
     # Generate a location object. This describes where the data are
     location = location_builder.build(url)
 
@@ -244,13 +229,35 @@ class ConnectionBuilder(URLKeyBuilder):
       # Alter location parts to create a new URL
       # Ran into URL parsing issues, so needed to
       # quote username and password
-      _url = (
-        url
-        .replace(
-          f'{username}@',
-          f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
+      '''
+      default port
+      '''
+
+      if((url_acces.scheme == 'oracle') and (url_acces.port is None)):
+        Logic = False
+        port = 1521
+      elif((url_acces.scheme == 'redshift') and (url_acces.port is None)):
+        Logic = False
+        port = 5439
+      else:
+        Logic = True
+        port = url_acces.port
+      if(not Logic):
+
+        _url = (
+          url
+          .replace(
+            f'{username}@',
+            f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
+          ).replace(f'@{url_acces.hostname}', f'@{url_acces.hostname}:{port}')
         )
-      )
+      else:
+        _url = (
+          url
+          .replace(
+            f'{username}@',
+            f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
+          ))
 
     else:
       
@@ -862,14 +869,9 @@ class OracleConnection(BaseConnection):
 
     location = self.location
     # incase there is not a port number
-    if((location.scheme == 'oracle') and (location.port is None)):
-      port = 1521
-    elif((location.scheme == 'redshift') and (location.port is None)):
-      port = 5439
-    else:
-      port = location.port
+
     # XXX `thin` driver hard-coded. Should make this smarter later.
-    return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{port}/{location.db}"
+    return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
 
   def read(
     self,
