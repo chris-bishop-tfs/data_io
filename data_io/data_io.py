@@ -137,6 +137,7 @@ class BaseBuilder(abc.ABC):
     raise NotImplemented
 
 
+
 class URLKeyBuilder(BaseBuilder):
   """
   Simple extension of a builder that adds a method
@@ -531,7 +532,8 @@ class S3Connection(BaseConnection):
     # Set default read options
     default_read_options = dict(
         inferSchema=True,
-        header=True
+        header=True,
+        format='parquet'
       )
 
     # We'll set the default read options then override with
@@ -547,6 +549,8 @@ class S3Connection(BaseConnection):
     reader = (
       spark
       .read
+      # Set format
+      .format(read_options['format'])
     )
 
     # Set options for the reader object
