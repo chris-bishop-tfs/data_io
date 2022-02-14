@@ -557,9 +557,18 @@ class RedshiftConnection(BaseConnection):
     except:
       return False
 
+  def default_dbtable(self):
+
+    try:
+      return f"{self.location.schema}.{self.location.table}"
+    except:
+      return None
+
+
   def write(
     self,
     data,
+    dbtable=default_dbtable(),
     *largs,
     format='parque',
     **kwargs
@@ -573,7 +582,7 @@ class RedshiftConnection(BaseConnection):
         url=self.jdbc_url,
         user=self.location.username,
         password=self.location.password,
-        dbtable=f"{self.location.schema}.{self.location.table}",
+        dbtable=dbtable,
         forward_spark_s3_credentials=True,
         tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
         mode='default'
