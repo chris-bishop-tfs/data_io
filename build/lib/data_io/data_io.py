@@ -568,11 +568,15 @@ class RedshiftConnection(BaseConnection):
   def write(
     self,
     data,
-    dbtable=default_dbtable(),
+    dbtable= 'None',
     *largs,
     format='parque',
     **kwargs
   ):
+
+
+    if dbtable == 'None':
+      dbtable = self.default_dbtable()
 
     # Set default options
     # XXX Spark's write API is not homogenous,

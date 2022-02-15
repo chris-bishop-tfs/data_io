@@ -557,40 +557,44 @@ class RedshiftConnection(BaseConnection):
     except:
       return False
 
-  def default_dbtable(self):
 
-    try:
-      return f"{self.location.schema}.{self.location.table}"
-    except:
-      return None
 
 
   def write(
     self,
     data,
-    dbtable= 'None',
     *largs,
     format='parque',
     **kwargs
   ):
 
 
-    if dbtable == 'None':
-      dbtable = self.default_dbtable()
+
+
 
     # Set default options
     # XXX Spark's write API is not homogenous,
     # so we're going to force it to be
     default_write_options = dict(
-        format="com.databricks.spark.redshift",
-        url=self.jdbc_url,
-        user=self.location.username,
-        password=self.location.password,
-        dbtable=dbtable,
-        forward_spark_s3_credentials=True,
-        tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
-        mode='default'
-      )
+      format="com.databricks.spark.redshift",
+      url=self.jdbc_url,
+      user=self.location.username,
+      password=self.location.password,
+     dbtable=f"{self.location.schema}.{self.location.table}",
+      forward_spark_s3_credentials=True,
+      tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
+       mode='default'
+)
+    # default_write_options = dict(
+    #     format="com.databricks.spark.redshift",
+    #     url=self.jdbc_url,
+    #     user=self.location.username,
+    #     password=self.location.password,
+    #     dbtable=dbtable,
+    #     forward_spark_s3_credentials=True,
+    #     tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
+    #     mode='default'
+    #   )
 
     writer = data.write
 
