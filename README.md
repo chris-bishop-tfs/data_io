@@ -2,7 +2,7 @@
 
 This is a companion package intended to be used within Databricks. Each individual team has its own solution to standardized data reading/writing, but the APIs are awkward and backend-specific. This package was born out of our need for a standardized data IO API.
 
-This package standardizes data read/write via spark. It has overlappying scope with other projets such as Spark Optimus, but is hyper focused on URL-based data IO in Spark.
+This package standardizes data read/write via spark. It has overlapping scope with other projets such as Spark Optimus, but is hyper focused on URL-based data IO in Spark.
 
 
 The package currently supports R/W in S3, Redshift, and Oracle. Extending the package to other backends is straightforward.
