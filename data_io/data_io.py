@@ -393,7 +393,7 @@ class DatabaseConnection(BaseConnection):
     return spark
     
   def get_options(self, default_options, is_read, **kwargs):
-    # We'll set the default read options then override with
+    # We'll set the default options then override with
     # whatever the user wants
     options = default_options
 
@@ -446,7 +446,21 @@ class DatabaseConnection(BaseConnection):
     
     writer = data.write
     writer = self.set_options(writer, write_options)
+    
+    # oracle
+    # writer.mode(write_options['mode']).jdbc(self.jdbc_url, self.location.table)
 
+    # s3
+    # writer.mode(write_options['mode']).format(write_options['format']).save(self.url)
+    
+    # postgres
+    # writer.mode(write_options['mode']).format(write_options['format'])
+    # writer.save()
+    
+    # redshift
+    # writer.mode(write_options['mode']).format(write_options['format'])
+    # writer.save()
+    
     print("WRITE")
 
     return None 
@@ -460,6 +474,7 @@ class RedshiftConnection(DatabaseConnection):
   XXX Needs hardening.
   """
   
+   
   def read(
       self,
       spark=None,
