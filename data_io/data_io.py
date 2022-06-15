@@ -79,13 +79,7 @@ class BaseConnection(abc.ABC):
     """
 
     raise NotImplemented
-
-  def check_spark_session(spark):
-    if spark is None:
-      spark = SparkSession.builder.getOrCreate()
-
-    return spark
-
+    
   
 class BaseBuilder(abc.ABC):
   """
@@ -390,6 +384,67 @@ class DatabaseLocation(Location):
       raise NotImplemented
 
 
+      
+class DatabaseConnection(BaseConnection): 
+    
+  def check_spark_session(self, spark):
+    if spark is None:
+      spark = SparkSession.builder.getOrCreate()
+
+    return spark
+    
+  def get_options(self, default_options, is_read, **kwargs):
+    # We'll set the default read options then override with
+    # whatever the user wants
+    options = default_options
+
+    for option, value in kwargs.items():
+      options[option] = value
+
+    # This is clunky, but we needed a way to support query/dbtable
+    if is_read and ('query' not in options.keys() and 'dbtable' not in options.keys()):
+      options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
+    
+    return options
+  
+  def set_options(self, r_w, options):
+    # Set options for the reader object
+    for option, value in options.items():
+      r_w = r_w.option(option, value)
+      
+    return r_w
+  
+  def read(
+    self,
+    spark=None,
+    default_read_options=None,
+    *largs,
+    **kwargs
+  ):
+    
+    spark = self.check_spark_session(spark)
+
+    # Set default read options
+    default_read_options = dict(
+        user=self.location.username,
+        password=self.location.password,
+        url=self.jdbc_url,
+        # For faster reads
+        fetchsize=10000,
+        driver="oracle.jdbc.driver.OracleDriver"
+      )
+
+    read_options = self.get_options(default_read_options, True, **kwargs)
+
+    reader = spark.read.format('jdbc')
+    reader = self.set_options(reader, read_options)
+
+    # Finally, load the data and return a pyspark DF
+    print("READ")
+
+    return None
+    
+  
 class RedshiftConnection(BaseConnection):
   """
   Redshift connector
@@ -397,7 +452,7 @@ class RedshiftConnection(BaseConnection):
   XXX Temporary S3 bucket is hard-coded. It will break with other roles.
   XXX Needs hardening.
   """
-
+  
   def read(
       self,
       spark=None,
@@ -460,9 +515,9 @@ class RedshiftConnection(BaseConnection):
       reader = reader.option(option, value)
 
     # Finally, load the data and return a pyspark DF
-    data = reader.load()
+    print("READ")
 
-    return data
+    return None
 
   def write(
     self,
@@ -512,7 +567,7 @@ class RedshiftConnection(BaseConnection):
       
       writer = writer.option(option, value)
 
-    writer.save()
+    print("WRITE")
 
     return None
   
@@ -524,7 +579,7 @@ class PostgresqlConnection(BaseConnection):
   This needs to be reorganized so Postgres/Redshift and related connections
   have far, far less redundant code.
   """
-
+  
   def read(
       self,
       spark=None,
@@ -582,9 +637,9 @@ class PostgresqlConnection(BaseConnection):
       reader = reader.option(option, value)
 
     # Finally, load the data and return a pyspark DF
-    data = reader.load()
+    print("READ")
 
-    return data
+    return None
 
   def write(
     self,
@@ -629,15 +684,17 @@ class PostgresqlConnection(BaseConnection):
     for option, value in write_options.items():
       
       writer = writer.option(option, value)
-
-    writer.save()
+      
+    print("WRITE")
 
     return None
+  
+  
 class S3Connection(BaseConnection):
   """
   Read form and write to S3 buckets.
   """
-
+  
   def read(
     self,
     spark=None,
@@ -676,9 +733,9 @@ class S3Connection(BaseConnection):
       
       reader = reader.option(option, value)
     
-    data = reader.load(self.url)
-    
-    return data
+    print("READ")
+
+    return None
 
   def write(
     self,
@@ -712,17 +769,12 @@ class S3Connection(BaseConnection):
     
     # XXX This does not fully support other
     # options at the moment. Needs fixing
-    (
-      writer
-      .mode(write_options['mode'])
-      .format(write_options['format'])
-      .save(self.url)
-    )
-    
-    return None 
+    print("WRITE")
+
+    return None
 
 
-class OracleConnection(BaseConnection):
+class OracleConnection(DatabaseConnection):
   """
   Read from and write to S3 buckets.
   """
@@ -734,21 +786,15 @@ class OracleConnection(BaseConnection):
 
     # XXX `thin` driver hard-coded. Should make this smarter later.
     return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
-
+  
   def read(
     self,
     spark=None,
     *largs,
     **kwargs
   ):
-  # XXX I'm copying and pasting code, need better abstraction.
-  # Suggest an intermediate class with default read behavior or
-  # read behavior.
-  #
-  # Looking for functional code before I make it pretty/follow better
-  # SWE principles.
  
-    spark = check_spark_session(spark)
+    spark = self.check_spark_session(spark)
 
     # Set default read options
     default_read_options = dict(
@@ -760,30 +806,15 @@ class OracleConnection(BaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    # We'll set the default read options then override with
-    # whatever the user wants
-    read_options = default_read_options
+    read_options = self.get_options(default_read_options, True, **kwargs)
 
     reader = spark.read.format('jdbc')
-
-    for option, value in kwargs.items():
-
-      read_options[option] = value
-
-    # This is clunky, but we needed a way to support query/dbtable
-    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
-
-      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
-
-    # Set options for the reader object
-    for option, value in read_options.items():
-
-      reader = reader.option(option, value)
+    reader = self.set_options(reader, read_options)
 
     # Finally, load the data and return a pyspark DF
-    data = reader.load()
-  
-    return data
+    print("READ")
+
+    return None
 
   def write(
     self,
@@ -820,16 +851,9 @@ class OracleConnection(BaseConnection):
     
     # XXX This does not fully support other
     # options at the moment. Needs fixing
-    (
-      writer
-      .mode(write_options['mode'])
-      .jdbc(
-        self.jdbc_url,
-        self.location.table
-      )
-    )
+    print("WRITE")
 
-    return None  
+    return None 
 
 # Let's configure our builders
 location_builder = LocationBuilder()
@@ -848,7 +872,7 @@ connection_builder.register(('s3a',), S3Connection)
 
 def build_connection(url, *largs, **kwargs):
   """
-  High-level convenience function to build connection-type objects.
+  High-level convenience function to build connection-type objects..
   
   Args:
     url (str): URL of data or backend
@@ -857,7 +881,7 @@ def build_connection(url, *largs, **kwargs):
   Returns:
     connection (Connection): returns connection type object
   """
-  
+
   # Leverage the builder
   connection = connection_builder.build(url, *largs, **kwargs)
 
