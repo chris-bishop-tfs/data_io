@@ -851,7 +851,7 @@ connection_builder.register(('s3a',), S3Connection)
 
 def build_connection(url, *largs, **kwargs):
   """
-  High-level convenience function to build connection-type objects.
+  High-level convenience function to build connection-type objects...
   
   Args:
     url (str): URL of data or backend
