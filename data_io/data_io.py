@@ -384,9 +384,8 @@ class DatabaseLocation(Location):
       raise NotImplemented
 
 
-      
 class DatabaseConnection(BaseConnection): 
-    
+  
   def check_spark_session(self, spark):
     if spark is None:
       spark = SparkSession.builder.getOrCreate()
@@ -416,36 +415,44 @@ class DatabaseConnection(BaseConnection):
   
   def read(
     self,
-    spark=None,
-    default_read_options=None,
+    spark = None,
+    default_read_options = None,
     *largs,
     **kwargs
   ):
     
     spark = self.check_spark_session(spark)
 
-    # Set default read options
-    default_read_options = dict(
-        user=self.location.username,
-        password=self.location.password,
-        url=self.jdbc_url,
-        # For faster reads
-        fetchsize=10000,
-        driver="oracle.jdbc.driver.OracleDriver"
-      )
-
     read_options = self.get_options(default_read_options, True, **kwargs)
 
     reader = spark.read.format('jdbc')
     reader = self.set_options(reader, read_options)
 
-    # Finally, load the data and return a pyspark DF
     print("READ")
-
+    # Finally, load the data and return a pyspark DF
+    # data = reader.load()
+    # return data
     return None
     
+  def write(
+    self,
+    data,
+    default_write_options = None,
+    *largs,
+    **kwargs
+  ):
+
+    write_options = self.get_options(default_write_options, False, **kwargs)
+    
+    writer = data.write
+    writer = self.set_options(writer, write_options)
+
+    print("WRITE")
+
+    return None 
   
-class RedshiftConnection(BaseConnection):
+  
+class RedshiftConnection(DatabaseConnection):
   """
   Redshift connector
   
@@ -470,8 +477,6 @@ class RedshiftConnection(BaseConnection):
     Returns:
       data (spark DF): the data, YO
     """
-
-    spark = check_spark_session(spark)
     
     # Set default read options
     default_read_options = dict(
@@ -489,35 +494,14 @@ class RedshiftConnection(BaseConnection):
         # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
-    # We'll set the default read options then override with
-    # whatever the user wants
-    read_options = default_read_options
-  
-    for option, value in kwargs.items():
-
-      read_options[option] = value
-  
-    # This is clunky, but we needed a way to support query/dbtable
-    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
-
-      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
-
-    # Initialize the reader
-    reader = (
-      spark
-      .read
-      .format("com.databricks.spark.redshift")
+    data = super().read(
+      spark=spark,
+      default_read_options = default_read_options,
+      *largs,
+      **kwargs
     )
-    
-    # Set options for the reader object
-    for option, value in read_options.items():
-      
-      reader = reader.option(option, value)
 
-    # Finally, load the data and return a pyspark DF
-    print("READ")
-
-    return None
+    return data
 
   def write(
     self,
@@ -540,39 +524,18 @@ class RedshiftConnection(BaseConnection):
         tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
         mode='default'
       )
-
-    writer = data.write
-
-    # We'll set the default read options then override with
-    # whatever the user wants
-    write_options = default_write_options
-  
-    for option, value in kwargs.items():
-
-      write_options[option] = value
-
-    # Set format and mode
-    writer = (
-      writer
-      .format(write_options['format'])
-      .mode(write_options['mode'])
+    
+    super().write(
+      data,
+      default_write_options = default_write_options,
+      *largs,
+      **kwargs
     )
-
-    # Remove format/mode so we can set options intelligenly
-    write_options.pop('format', None)
-    write_options.pop('mode', None)
-
-    # Set options for the reader object
-    for option, value in write_options.items():
-      
-      writer = writer.option(option, value)
-
-    print("WRITE")
 
     return None
   
 
-class PostgresqlConnection(BaseConnection):
+class PostgresqlConnection(DatabaseConnection):
   """
   Postgres
   
@@ -597,8 +560,6 @@ class PostgresqlConnection(BaseConnection):
     Returns:
       data (spark DF): the data, YO
     """
-
-    spark = check_spark_session(spark)
   
     # Set default read options
     default_read_options = dict(
@@ -611,35 +572,14 @@ class PostgresqlConnection(BaseConnection):
       mode='default'
     )
 
-    # We'll set the default read options then override with
-    # whatever the user wants
-    read_options = default_read_options
-  
-    for option, value in kwargs.items():
-
-      read_options[option] = value
-  
-    # This is clunky, but we needed a way to support query/dbtable
-    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
-
-      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
-
-    # Initialize the reader
-    reader = (
-      spark
-      .read
-      .format("jdbc")
+    data = super().read(
+      spark=spark,
+      default_read_options = default_read_options,
+      *largs,
+      **kwargs
     )
-    
-    # Set options for the reader object
-    for option, value in read_options.items():
-      
-      reader = reader.option(option, value)
 
-    # Finally, load the data and return a pyspark DF
-    print("READ")
-
-    return None
+    return data
 
   def write(
     self,
@@ -659,38 +599,17 @@ class PostgresqlConnection(BaseConnection):
       mode='default'
     )
 
-    writer = data.write
-
-    # We'll set the default read options then override with
-    # whatever the user wants
-    write_options = default_write_options
-  
-    for option, value in kwargs.items():
-
-      write_options[option] = value
-
-    # Set format and mode
-    writer = (
-      writer
-      .format(write_options['format'])
-      .mode(write_options['mode'])
+    super().write(
+      data,
+      default_write_options = default_write_options,
+      *largs,
+      **kwargs
     )
-
-    # Remove format/mode so we can set options intelligenly
-    write_options.pop('format', None)
-    write_options.pop('mode', None)
-
-    # Set options for the reader object
-    for option, value in write_options.items():
-      
-      writer = writer.option(option, value)
-      
-    print("WRITE")
 
     return None
   
   
-class S3Connection(BaseConnection):
+class S3Connection(DatabaseConnection):
   """
   Read form and write to S3 buckets.
   """
@@ -701,9 +620,7 @@ class S3Connection(BaseConnection):
     *largs,
     **kwargs
   ):
-
-    spark = check_spark_session(spark)
-  
+    
     # Set default read options
     default_read_options = dict(
         inferSchema=True,
@@ -711,31 +628,14 @@ class S3Connection(BaseConnection):
         format='parquet'
       )
 
-    # We'll set the default read options then override with
-    # whatever the user wants
-    read_options = default_read_options
-  
-    for option, value in kwargs.items():
-
-      read_options[option] = value
-  
-    # Initialize the reader
-    # Set reader format
-    reader = (
-      spark
-      .read
-      # Set format
-      .format(read_options['format'])
+    data = super().read(
+      spark=spark,
+      default_read_options = default_read_options,
+      *largs,
+      **kwargs
     )
 
-    # Set options for the reader object
-    for option, value in read_options.items():
-      
-      reader = reader.option(option, value)
-    
-    print("READ")
-
-    return None
+    return data
 
   def write(
     self,
@@ -752,24 +652,12 @@ class S3Connection(BaseConnection):
         format="parquet"
       )
 
-    writer = data.write
-
-    # We'll set the default read options then override with
-    # whatever the user wants
-    write_options = default_write_options
-  
-    for option, value in kwargs.items():
-
-      write_options[option] = value
-
-    # Set options for the reader object
-    for option, value in write_options.items():
-      
-      writer = writer.option(option, value)
-    
-    # XXX This does not fully support other
-    # options at the moment. Needs fixing
-    print("WRITE")
+    super().write(
+      data,
+      default_write_options = default_write_options,
+      *largs,
+      **kwargs
+    )
 
     return None
 
@@ -778,7 +666,7 @@ class OracleConnection(DatabaseConnection):
   """
   Read from and write to S3 buckets.
   """
-  
+
   @property
   def jdbc_url(self):
 
@@ -793,9 +681,6 @@ class OracleConnection(DatabaseConnection):
     *largs,
     **kwargs
   ):
- 
-    spark = self.check_spark_session(spark)
-
     # Set default read options
     default_read_options = dict(
         user=self.location.username,
@@ -806,15 +691,14 @@ class OracleConnection(DatabaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    read_options = self.get_options(default_read_options, True, **kwargs)
+    data = super().read(
+      spark=spark,
+      default_read_options = default_read_options,
+      *largs,
+      **kwargs
+    )
 
-    reader = spark.read.format('jdbc')
-    reader = self.set_options(reader, read_options)
-
-    # Finally, load the data and return a pyspark DF
-    print("READ")
-
-    return None
+    return data
 
   def write(
     self,
@@ -834,24 +718,12 @@ class OracleConnection(DatabaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    writer = data.write
-
-    # We'll set the default read options then override with
-    # whatever the user wants
-    write_options = default_write_options
-  
-    for option, value in kwargs.items():
-
-      write_options[option] = value
-
-    # Set options for the reader object
-    for option, value in write_options.items():
-      
-      writer = writer.option(option, value)
-    
-    # XXX This does not fully support other
-    # options at the moment. Needs fixing
-    print("WRITE")
+    super().write(
+      data,
+      default_write_options = default_write_options,
+      *largs,
+      **kwargs
+    )
 
     return None 
 

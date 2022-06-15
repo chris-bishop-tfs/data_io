@@ -10,4 +10,12 @@ data = connection.read(query = 'SELECT * FROM CDWREAD.T_PB WHERE ROWNUM < 10')
 
 # COMMAND ----------
 
+# connection.write(data)
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 
