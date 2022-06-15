@@ -80,6 +80,11 @@ class BaseConnection(abc.ABC):
 
     raise NotImplemented
 
+  def check_spark_session(spark):
+    if spark is None:
+      spark = SparkSession.builder.getOrCreate()
+
+    return spark
 
 class BaseBuilder(abc.ABC):
   """
@@ -411,10 +416,11 @@ class RedshiftConnection(BaseConnection):
       data (spark DF): the data, YO
     """
 
-    if spark is None:
+    # if spark is None:
       
-      spark = SparkSession.builder.getOrCreate()
-  
+    #  spark = SparkSession.builder.getOrCreate()
+    spark = check_spark_session(spark)
+    
     # Set default read options
     default_read_options = dict(
         user=self.location.username,
