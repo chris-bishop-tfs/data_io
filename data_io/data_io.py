@@ -86,6 +86,7 @@ class BaseConnection(abc.ABC):
 
     return spark
 
+  
 class BaseBuilder(abc.ABC):
   """
   We'll be constructing several kinds of objects from a URL.
@@ -141,8 +142,7 @@ class BaseBuilder(abc.ABC):
 
     raise NotImplemented
 
-
-
+    
 class URLKeyBuilder(BaseBuilder):
   """
   Simple extension of a builder that adds a method
@@ -416,9 +416,6 @@ class RedshiftConnection(BaseConnection):
       data (spark DF): the data, YO
     """
 
-    # if spark is None:
-      
-    #  spark = SparkSession.builder.getOrCreate()
     spark = check_spark_session(spark)
     
     # Set default read options
@@ -546,9 +543,7 @@ class PostgresqlConnection(BaseConnection):
       data (spark DF): the data, YO
     """
 
-    if spark is None:
-      
-      spark = SparkSession.builder.getOrCreate()
+    spark = check_spark_session(spark)
   
     # Set default read options
     default_read_options = dict(
@@ -650,9 +645,7 @@ class S3Connection(BaseConnection):
     **kwargs
   ):
 
-    if spark is None:
-      
-      spark = SparkSession.builder.getOrCreate()
+    spark = check_spark_session(spark)
   
     # Set default read options
     default_read_options = dict(
@@ -754,10 +747,8 @@ class OracleConnection(BaseConnection):
   #
   # Looking for functional code before I make it pretty/follow better
   # SWE principles.
-
-    if spark is None:
-      
-      spark = SparkSession.builder.getOrCreate()
+ 
+    spark = check_spark_session(spark)
 
     # Set default read options
     default_read_options = dict(
@@ -857,7 +848,7 @@ connection_builder.register(('s3a',), S3Connection)
 
 def build_connection(url, *largs, **kwargs):
   """
-  High-level convenience function to build connection-type objects...
+  High-level convenience function to build connection-type objects.
   
   Args:
     url (str): URL of data or backend
