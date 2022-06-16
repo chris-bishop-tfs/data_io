@@ -495,7 +495,7 @@ class RedshiftConnection(DatabaseConnection):
         password=self.location.password,
         forward_spark_s3_credentials=True,
         url=self.jdbc_url,
-        format="com.databricks.spark.redshift"
+        format="com.databricks.spark.redshift",
         # This is the most questionable to me ... OK to use
         # for multiple people?
         # XXX This should be set through a shared configuration
