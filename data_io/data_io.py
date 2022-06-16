@@ -438,7 +438,7 @@ class DatabaseConnection(BaseConnection):
     # return data
     return None
     
-  def write(
+  def set_writer(
     self,
     data,
     default_write_options = None,
@@ -449,25 +449,19 @@ class DatabaseConnection(BaseConnection):
     write_options = self.get_options(default_write_options, False, **kwargs)
     
     writer = data.write
+
+    # set format and mode separately, remove from options dict
+    if write_options.has_key('format'):
+      writer = writer.format(write_options['format'])
+      write_options.pop('format', None)
+
+    if write_options.has_key('mode'):
+      writer = writer.mode(write_options['mode'])
+      write_options.pop('mode', None)
+
     writer = self.set_options(writer, write_options)
-    
-    # oracle
-    # writer.mode(write_options['mode']).jdbc(self.jdbc_url, self.location.table)
 
-    # s3
-    # writer.mode(write_options['mode']).format(write_options['format']).save(self.url)
-    
-    # postgres
-    # writer.mode(write_options['mode']).format(write_options['format'])
-    # writer.save()
-    
-    # redshift
-    # writer.mode(write_options['mode']).format(write_options['format'])
-    # writer.save()
-    
-    print("WRITE")
-
-    return None 
+    return writer 
   
   
 class RedshiftConnection(DatabaseConnection):
@@ -503,6 +497,7 @@ class RedshiftConnection(DatabaseConnection):
         password=self.location.password,
         forward_spark_s3_credentials=True,
         url=self.jdbc_url,
+        format="com.databricks.spark.redshift"
         # This is the most questionable to me ... OK to use
         # for multiple people?
         # XXX This should be set through a shared configuration
@@ -544,12 +539,14 @@ class RedshiftConnection(DatabaseConnection):
         mode='default'
       )
     
-    super().write(
+    writer = super().set_writer(
       data,
       default_write_options = default_write_options,
       *largs,
       **kwargs
     )
+
+    writer.save()
 
     return None
   
@@ -618,12 +615,14 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    super().write(
+    writer = super().set_writer(
       data,
       default_write_options = default_write_options,
       *largs,
       **kwargs
     )
+
+    writer.save()
 
     return None
   
@@ -671,12 +670,14 @@ class S3Connection(DatabaseConnection):
         format="parquet"
       )
 
-    super().write(
+    writer = super().set_writer(
       data,
       default_write_options = default_write_options,
       *largs,
       **kwargs
     )
+
+    writer.save(self.url)
 
     return None
 
@@ -707,7 +708,8 @@ class OracleConnection(DatabaseConnection):
         url=self.jdbc_url,
         # For faster reads
         fetchsize=10000,
-        driver="oracle.jdbc.driver.OracleDriver"
+        driver="oracle.jdbc.driver.OracleDriver",
+        format='jdbc'
       )
 
     data = super().read(
@@ -737,12 +739,14 @@ class OracleConnection(DatabaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    super().write(
+    writer = super().set_writer(
       data,
       default_write_options = default_write_options,
       *largs,
       **kwargs
     )
+
+    writer.jdbc(self.jdbc_url, self.location.table)
 
     return None 
 
