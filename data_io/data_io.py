@@ -385,8 +385,12 @@ class DatabaseLocation(Location):
 
 
 class DatabaseConnection(BaseConnection): 
-  
+  """
+    Intermediate connection class with common code and default behavior.
+  """
+
   def check_spark_session(self, spark):
+    # check for active spark session
     if spark is None:
       spark = SparkSession.builder.getOrCreate()
 
