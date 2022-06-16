@@ -432,11 +432,9 @@ class DatabaseConnection(BaseConnection):
     reader = spark.read.format('jdbc')
     reader = self.set_options(reader, read_options)
 
-    print("READ")
     # Finally, load the data and return a pyspark DF
-    # data = reader.load()
-    # return data
-    return None
+    data = reader.load()
+    return data
     
   def set_writer(
     self,
