@@ -396,7 +396,7 @@ class DatabaseConnection(BaseConnection):
 
     return spark
     
-  def get_options(self, default_options, is_read, **kwargs):
+  def build_options(self, default_options, is_read, **kwargs):
     # We'll set the default options then override with
     # whatever the user wants
     options = default_options
@@ -410,14 +410,14 @@ class DatabaseConnection(BaseConnection):
     
     return options
   
-  def set_options(self, r_w, options):
+  def implement_options(self, r_w, options):
     # Set options for the reader object
     for option, value in options.items():
       r_w = r_w.option(option, value)
       
     return r_w
-  
-  def set_reader(
+
+  def build_reader(
     self,
     spark=None,
     default_read_options=None,
@@ -427,14 +427,14 @@ class DatabaseConnection(BaseConnection):
     
     spark = self.check_spark_session(spark)
 
-    read_options = self.get_options(default_read_options, True, **kwargs)
+    read_options = self.build_options(default_read_options, True, **kwargs)
 
     reader = spark.read.format(read_options['format'])
-    reader = self.set_options(reader, read_options)
+    reader = self.implement_options(reader, read_options)
 
     return reader
     
-  def set_writer(
+  def build_writer(
     self,
     data,
     default_write_options=None,
@@ -442,7 +442,7 @@ class DatabaseConnection(BaseConnection):
     **kwargs
   ):
 
-    write_options = self.get_options(default_write_options, False, **kwargs)
+    write_options = self.build_options(default_write_options, False, **kwargs)
     
     writer = data.write
 
@@ -455,7 +455,7 @@ class DatabaseConnection(BaseConnection):
       writer = writer.mode(write_options['mode'])
       write_options.pop('mode', None)
 
-    writer = self.set_options(writer, write_options)
+    writer = self.implement_options(writer, write_options)
 
     return writer 
   
@@ -504,7 +504,7 @@ class RedshiftConnection(DatabaseConnection):
         # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
-    reader = super().set_reader(
+    reader = super().build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -538,7 +538,7 @@ class RedshiftConnection(DatabaseConnection):
         mode='default'
       )
     
-    writer = super().set_writer(
+    writer = super().build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
@@ -587,7 +587,7 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    reader = super().set_reader(
+    reader = super().build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -617,7 +617,7 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    writer = super().set_writer(
+    writer = super().build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
@@ -648,7 +648,7 @@ class S3Connection(DatabaseConnection):
         format='parquet'
       )
 
-    reader = super().set_reader(
+    reader = super().build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -675,7 +675,7 @@ class S3Connection(DatabaseConnection):
         format="parquet"
       )
 
-    writer = super().set_writer(
+    writer = super().build_writer(
       data,
       default_write_options = default_write_options,
       *largs,
@@ -717,7 +717,7 @@ class OracleConnection(DatabaseConnection):
         format='jdbc'
       )
 
-    reader = super().set_reader(
+    reader = super().build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -747,7 +747,7 @@ class OracleConnection(DatabaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    writer = super().set_writer(
+    writer = super().build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
