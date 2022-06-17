@@ -425,8 +425,10 @@ class DatabaseConnection(BaseConnection):
     **kwargs
   ):
     
+    print(spark)
     spark = self.check_spark_session(spark)
 
+    print(spark)
     read_options = self.get_options(default_read_options, True, **kwargs)
     print(spark)
     reader = spark.read.format(read_options['format'])
@@ -643,7 +645,7 @@ class S3Connection(DatabaseConnection):
         header=True,
         format='parquet'
       )
-
+    print(spark)
     data = super().read(
       spark=spark,
       default_read_options = default_read_options,
