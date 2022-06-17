@@ -419,8 +419,8 @@ class DatabaseConnection(BaseConnection):
   
   def set_reader(
     self,
-    spark = None,
-    default_read_options = None,
+    spark=None,
+    default_read_options=None,
     *largs,
     **kwargs
   ):
@@ -437,7 +437,7 @@ class DatabaseConnection(BaseConnection):
   def set_writer(
     self,
     data,
-    default_write_options = None,
+    default_write_options=None,
     *largs,
     **kwargs
   ):
@@ -506,7 +506,7 @@ class RedshiftConnection(DatabaseConnection):
 
     reader = super().set_reader(
       spark=spark,
-      default_read_options = default_read_options,
+      default_read_options=default_read_options,
       *largs,
       **kwargs
     )
@@ -540,7 +540,7 @@ class RedshiftConnection(DatabaseConnection):
     
     writer = super().set_writer(
       data,
-      default_write_options = default_write_options,
+      default_write_options=default_write_options,
       *largs,
       **kwargs
     )
@@ -589,7 +589,7 @@ class PostgresqlConnection(DatabaseConnection):
 
     reader = super().set_reader(
       spark=spark,
-      default_read_options = default_read_options,
+      default_read_options=default_read_options,
       *largs,
       **kwargs
     )
@@ -619,7 +619,7 @@ class PostgresqlConnection(DatabaseConnection):
 
     writer = super().set_writer(
       data,
-      default_write_options = default_write_options,
+      default_write_options=default_write_options,
       *largs,
       **kwargs
     )
@@ -650,7 +650,7 @@ class S3Connection(DatabaseConnection):
 
     reader = super().set_reader(
       spark=spark,
-      default_read_options = default_read_options,
+      default_read_options=default_read_options,
       *largs,
       **kwargs
     )
@@ -719,7 +719,7 @@ class OracleConnection(DatabaseConnection):
 
     reader = super().set_reader(
       spark=spark,
-      default_read_options = default_read_options,
+      default_read_options=default_read_options,
       *largs,
       **kwargs
     )
@@ -749,7 +749,7 @@ class OracleConnection(DatabaseConnection):
 
     writer = super().set_writer(
       data,
-      default_write_options = default_write_options,
+      default_write_options=default_write_options,
       *largs,
       **kwargs
     )
