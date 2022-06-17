@@ -405,7 +405,7 @@ class DatabaseConnection(BaseConnection):
       options[option] = value
 
     # This is clunky, but we needed a way to support query/dbtable
-    if isinstance(self, S3Connection) and is_read and ('query' not in options.keys() and 'dbtable' not in options.keys()):
+    if not(isinstance(self, S3Connection)) and is_read and ('query' not in options.keys() and 'dbtable' not in options.keys()):
       options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
     
     return options
