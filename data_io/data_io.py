@@ -428,8 +428,8 @@ class DatabaseConnection(BaseConnection):
     spark = self.check_spark_session(spark)
 
     read_options = self.get_options(default_read_options, True, **kwargs)
-
-    reader = spark.read.format('jdbc')
+    print(spark)
+    reader = spark.read.format(read_options['format'])
     reader = self.set_options(reader, read_options)
 
     # Finally, load the data and return a pyspark DF
