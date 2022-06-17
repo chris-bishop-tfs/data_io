@@ -656,7 +656,7 @@ class S3Connection(DatabaseConnection):
     )
 
     # Finally, load the data and return a pyspark DF
-    data = reader.load()
+    data = reader.load(self.url)
     
     return data
 
