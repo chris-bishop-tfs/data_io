@@ -449,11 +449,11 @@ class DatabaseConnection(BaseConnection):
     writer = data.write
 
     # set format and mode separately, remove from options dict
-    if write_options.has_key('format'):
+    if 'format' in write_options:
       writer = writer.format(write_options['format'])
       write_options.pop('format', None)
 
-    if write_options.has_key('mode'):
+    if 'mode' in write_options:
       writer = writer.mode(write_options['mode'])
       write_options.pop('mode', None)
 
