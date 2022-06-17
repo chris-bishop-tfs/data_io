@@ -417,7 +417,7 @@ class DatabaseConnection(BaseConnection):
       
     return r_w
   
-  def read(
+  def set_reader(
     self,
     spark = None,
     default_read_options = None,
@@ -425,18 +425,14 @@ class DatabaseConnection(BaseConnection):
     **kwargs
   ):
     
-    print(spark)
     spark = self.check_spark_session(spark)
 
-    print(spark)
     read_options = self.get_options(default_read_options, True, **kwargs)
-    print(spark)
+
     reader = spark.read.format(read_options['format'])
     reader = self.set_options(reader, read_options)
 
-    # Finally, load the data and return a pyspark DF
-    data = reader.load()
-    return data
+    return reader
     
   def set_writer(
     self,
@@ -508,13 +504,16 @@ class RedshiftConnection(DatabaseConnection):
         # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
-    data = super().read(
+    reader = super().set_reader(
       spark=spark,
       default_read_options = default_read_options,
       *largs,
       **kwargs
     )
 
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+    
     return data
 
   def write(
@@ -588,13 +587,16 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    data = super().read(
+    reader = super().set_reader(
       spark=spark,
       default_read_options = default_read_options,
       *largs,
       **kwargs
     )
 
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+    
     return data
 
   def write(
@@ -645,14 +647,17 @@ class S3Connection(DatabaseConnection):
         header=True,
         format='parquet'
       )
-    print(spark)
-    data = super().read(
+
+    reader = super().set_reader(
       spark=spark,
       default_read_options = default_read_options,
       *largs,
       **kwargs
     )
 
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+    
     return data
 
   def write(
@@ -712,13 +717,16 @@ class OracleConnection(DatabaseConnection):
         format='jdbc'
       )
 
-    data = super().read(
+    reader = super().set_reader(
       spark=spark,
       default_read_options = default_read_options,
       *largs,
       **kwargs
     )
 
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+    
     return data
 
   def write(
