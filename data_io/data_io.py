@@ -151,7 +151,7 @@ class URLKeyBuilder(BaseBuilder):
   def __init__(self, *largs, **kwargs):
     super(BaseBuilder, self).__init__()
 
-  def build_url_key(self, url):
+  def build_url_key(self, url: str) -> str:
     """
     Parse URL to create the required key
     """
@@ -181,7 +181,7 @@ class ConnectionBuilder(URLKeyBuilder):
   def __init__(self, *largs, **kwargs):
     super(URLKeyBuilder, self).__init__()
 
-  def build(self, url):
+  def build(self, url: str) -> BaseConnection:
     """
     Build a connection and return it
     """
@@ -233,7 +233,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
     return connection
   
-  def get_secret(self, key, scope=None):
+  def get_secret(self, key: str, scope=None):
     """
     Retrieve a desired key from the specified secrets scope
     """
@@ -262,6 +262,8 @@ class ConnectionBuilder(URLKeyBuilder):
         .split('@')
         [0]
       )
+      print('type of scope')
+      print(type(scope))
 
     # Retrieve the secret, yo!
     secret = (
@@ -272,7 +274,9 @@ class ConnectionBuilder(URLKeyBuilder):
         key=key
       )
     )
-  
+    print('type of secret')
+    print(type(secret))
+
     return secret
   
   def get_credentials(self, url):
