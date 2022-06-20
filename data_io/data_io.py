@@ -505,7 +505,7 @@ class RedshiftConnection(DatabaseConnection):
         # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
       )
 
-    reader = super().build_reader(
+    reader = self.build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -539,7 +539,7 @@ class RedshiftConnection(DatabaseConnection):
         mode='default'
       )
     
-    writer = super().build_writer(
+    writer = self.build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
@@ -588,7 +588,7 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    reader = super().build_reader(
+    reader = self.build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -618,7 +618,7 @@ class PostgresqlConnection(DatabaseConnection):
       mode='default'
     )
 
-    writer = super().build_writer(
+    writer = self.build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
