@@ -103,7 +103,7 @@ class BaseBuilder(abc.ABC):
     
     self.handlers = dict()
 
-  def register(self, handler_key: str, handler: Any) -> None:
+  def register(self, handler_key: str, handler: BaseConnection | Location) -> None:
     """
     Registers a new subclass in handlers dictionary.
 
@@ -114,7 +114,7 @@ class BaseBuilder(abc.ABC):
 
     self.handlers[handler_key] = handler
 
-  def get_handler(self, handler_key: str) -> Any:
+  def get_handler(self, handler_key: str) -> BaseConnection | Location:
     """
     Find subclass based on key.
 
