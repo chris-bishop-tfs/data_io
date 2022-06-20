@@ -736,7 +736,7 @@ class OracleConnection(DatabaseConnection):
     data: DataFrame,
     *largs,
     **kwargs
-   -> None):
+  ) -> None:
 
     # Set default options
     # XXX Spark's write API is not homogenous,
