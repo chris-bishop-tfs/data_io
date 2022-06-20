@@ -5,7 +5,7 @@ import abc
 import io
 from attr import attrs, attrib
 import urllib
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrameReader
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from urlpath import URL
@@ -117,7 +117,7 @@ class BaseBuilder(abc.ABC):
     
     self.handlers = dict()
 
-  def register(self, handler_key: str, handler: Union(BaseConnection, Location)) -> None:
+  def register(self, handler_key: str, handler: Union[BaseConnection, Location]) -> None:
     """
     Registers a new subclass in handlers dictionary.
 
@@ -128,7 +128,7 @@ class BaseBuilder(abc.ABC):
 
     self.handlers[handler_key] = handler
 
-  def get_handler(self, handler_key: str) -> Union(BaseConnection, Location):
+  def get_handler(self, handler_key: str) -> Union[BaseConnection, Location]:
     """
     Find subclass based on key.
 
@@ -340,7 +340,7 @@ class LocationBuilder(URLKeyBuilder):
   def __init__(self, *largs, **kwargs):
     super(URLKeyBuilder, self).__init__()
 
-  def build(self, url: str) -> Any:
+  def build(self, url: str) -> Location:
     
     # Build the URL key
     url_key = self.build_url_key(url)
@@ -389,14 +389,14 @@ class DatabaseConnection(BaseConnection):
     Intermediate connection class with common code and default behavior.
   """
 
-  def check_spark_session(self, spark):
+  def check_spark_session(self, spark: Union[None, SparkSession]) -> SparkSession:
     # check for active spark session
     if spark is None:
       spark = SparkSession.builder.getOrCreate()
 
     return spark
     
-  def build_options(self, default_options, is_read, **kwargs):
+  def build_options(self, default_options: dict, is_read: bool, **kwargs) -> dict:
     # We'll set the default options then override with
     # whatever the user wants
     options = default_options
@@ -410,7 +410,7 @@ class DatabaseConnection(BaseConnection):
     
     return options
   
-  def implement_options(self, r_w, options):
+  def implement_options(self, r_w, options: dict):
     # Set options for the reader object
     for option, value in options.items():
       r_w = r_w.option(option, value)
