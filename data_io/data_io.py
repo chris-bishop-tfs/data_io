@@ -649,7 +649,7 @@ class S3Connection(DatabaseConnection):
         format='parquet'
       )
 
-    reader = super().build_reader(
+    reader = self.build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -676,7 +676,7 @@ class S3Connection(DatabaseConnection):
         format="parquet"
       )
 
-    writer = super().build_writer(
+    writer = self.build_writer(
       data,
       default_write_options = default_write_options,
       *largs,
@@ -719,7 +719,7 @@ class OracleConnection(DatabaseConnection):
         format='jdbc'
       )
 
-    reader = super().build_reader(
+    reader = self.build_reader(
       spark=spark,
       default_read_options=default_read_options,
       *largs,
@@ -749,7 +749,7 @@ class OracleConnection(DatabaseConnection):
         driver="oracle.jdbc.driver.OracleDriver"
       )
 
-    writer = super().build_writer(
+    writer = self.build_writer(
       data,
       default_write_options=default_write_options,
       *largs,
