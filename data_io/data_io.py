@@ -5,7 +5,7 @@ import abc
 import io
 from attr import attrs, attrib
 import urllib
-from pyspark.sql import SparkSession, DataFrameReader
+from pyspark.sql import SparkSession, DataFrame, DataFrameReader, DataFrameWriter
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from urlpath import URL
@@ -352,6 +352,7 @@ class LocationBuilder(URLKeyBuilder):
     
     return location
 
+
 class DatabaseLocation(Location):
   """
   Database connections require extra parsing
@@ -410,7 +411,7 @@ class DatabaseConnection(BaseConnection):
     
     return options
   
-  def implement_options(self, r_w, options: dict):
+  def implement_options(self, r_w: Union[DataFrameWriter, DataFrameReader], options: dict) -> Union[DataFrameWriter, DataFrameReader]:
     # Set options for the reader object
     for option, value in options.items():
       r_w = r_w.option(option, value)
@@ -419,11 +420,11 @@ class DatabaseConnection(BaseConnection):
 
   def build_reader(
     self,
-    spark=None,
-    default_read_options=None,
+    spark: Optional[SparkSession]=None,
+    default_read_options: Optional[dict]=None,
     *largs,
     **kwargs
-  ):
+  ) -> DataFrameReader:
     
     spark = self.check_spark_session(spark)
 
@@ -436,11 +437,11 @@ class DatabaseConnection(BaseConnection):
     
   def build_writer(
     self,
-    data,
-    default_write_options=None,
+    data: DataFrame,
+    default_write_options: Optional[dict]=None,
     *largs,
     **kwargs
-  ):
+  ) -> DataFrameWriter:
 
     write_options = self.build_options(default_write_options, False, **kwargs)
     
@@ -471,10 +472,10 @@ class RedshiftConnection(DatabaseConnection):
    
   def read(
       self,
-      spark=None,
+      spark: Optional[SparkSession]=None,
       *largs,
       **kwargs
-    ):
+    ) -> DataFrame:
     """
     Read method for redshift data sources.
     
@@ -488,7 +489,7 @@ class RedshiftConnection(DatabaseConnection):
     """
     
     # Set default read options
-    default_read_options = dict(
+    default_read_options: dict = dict(
         user=self.location.username,
         password=self.location.password,
         forward_spark_s3_credentials=True,
@@ -518,15 +519,15 @@ class RedshiftConnection(DatabaseConnection):
 
   def write(
     self,
-    data,
+    data: DataFrame,
     *largs,
     **kwargs
-  ):
+  ) -> None:
 
     # Set default options
     # XXX Spark's write API is not homogenous,
     # so we're going to force it to be
-    default_write_options = dict(
+    default_write_options: dict = dict(
         format="com.databricks.spark.redshift",
         url=self.jdbc_url,
         user=self.location.username,
@@ -560,10 +561,10 @@ class PostgresqlConnection(DatabaseConnection):
   
   def read(
       self,
-      spark=None,
+      spark: Optional[SparkSession]=None,
       *largs,
       **kwargs
-    ):
+    ) -> DataFrame:
     """
     Read method for redshift data sources.
     
@@ -577,7 +578,7 @@ class PostgresqlConnection(DatabaseConnection):
     """
   
     # Set default read options
-    default_read_options = dict(
+    default_read_options: dict = dict(
       format='jdbc',
       user=self.location.username,
       driver="org.postgresql.Driver",
@@ -601,13 +602,13 @@ class PostgresqlConnection(DatabaseConnection):
 
   def write(
     self,
-    data,
+    data: DataFrame,
     *largs,
     **kwargs
-  ):
+  ) -> None:
 
     # Set default read options
-    default_write_options = dict(
+    default_write_options: dict = dict(
       format='jdbc',
       user=self.location.username,
       driver="org.postgresql.Driver",
@@ -636,13 +637,13 @@ class S3Connection(DatabaseConnection):
   
   def read(
     self,
-    spark=None,
+    spark: Optional[SparkSession]=None,
     *largs,
     **kwargs
-  ):
+  ) -> DataFrame:
     
     # Set default read options
-    default_read_options = dict(
+    default_read_options: dict = dict(
         inferSchema=True,
         header=True,
         format='parquet'
@@ -662,10 +663,10 @@ class S3Connection(DatabaseConnection):
 
   def write(
     self,
-    data,
+    data: DataFrame,
     *largs,
     **kwargs
-  ):
+  ) -> None:
 
     # Set default options
     # XXX Spark's write API is not homogenous,
@@ -693,7 +694,7 @@ class OracleConnection(DatabaseConnection):
   """
 
   @property
-  def jdbc_url(self):
+  def jdbc_url(self) -> str:
 
     location = self.location
 
@@ -702,10 +703,11 @@ class OracleConnection(DatabaseConnection):
   
   def read(
     self,
-    spark=None,
+    spark: Optional[SparkSession]=None,
     *largs,
     **kwargs
-  ):
+  ) -> DataFrame:
+
     # Set default read options
     default_read_options = dict(
         user=self.location.username,
@@ -731,10 +733,10 @@ class OracleConnection(DatabaseConnection):
 
   def write(
     self,
-    data,
+    data: DataFrame,
     *largs,
     **kwargs
-  ):
+   -> None):
 
     # Set default options
     # XXX Spark's write API is not homogenous,
@@ -773,7 +775,7 @@ connection_builder.register(('postgresql',), PostgresqlConnection)
 connection_builder.register(('s3a',), S3Connection)
 
 
-def build_connection(url, *largs, **kwargs):
+def build_connection(url: str, *largs, **kwargs) -> BaseConnection:
   """
   High-level convenience function to build connection-type objects.
   
