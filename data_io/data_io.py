@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from urlpath import URL
-from typing import Union, Any
+from typing import Any, Optional, Tuple, Union
 
 @attrs
 class BaseConnection(abc.ABC):
@@ -80,8 +80,21 @@ class BaseConnection(abc.ABC):
     """
 
     raise NotImplemented
-    
-  
+
+
+class Location(URL):
+  """
+  Store URL information, will likely need to extend this
+  to do some custom things later. At the moment, just a
+  stub for extension
+  """
+
+  def __init__(self, *largs, **kwargs):
+    super(URL, self).__init__()
+
+  pass
+
+
 class BaseBuilder(abc.ABC):
   """
   We'll be constructing several kinds of objects from a URL.
@@ -104,7 +117,7 @@ class BaseBuilder(abc.ABC):
     
     self.handlers = dict()
 
-  def register(self, handler_key: str, handler: Any) -> None:
+  def register(self, handler_key: str, handler: Union(BaseConnection, Location)) -> None:
     """
     Registers a new subclass in handlers dictionary.
 
@@ -115,7 +128,7 @@ class BaseBuilder(abc.ABC):
 
     self.handlers[handler_key] = handler
 
-  def get_handler(self, handler_key: str) -> Any:
+  def get_handler(self, handler_key: str) -> Union(BaseConnection, Location):
     """
     Find subclass based on key.
 
@@ -233,7 +246,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
     return connection
   
-  def get_secret(self, key: str, scope=None):
+  def get_secret(self, key: str, scope: Optional[str]=None) -> str:
     """
     Retrieve a desired key from the specified secrets scope
     """
@@ -262,8 +275,6 @@ class ConnectionBuilder(URLKeyBuilder):
         .split('@')
         [0]
       )
-      print('type of scope')
-      print(type(scope))
 
     # Retrieve the secret, yo!
     secret = (
@@ -274,12 +285,10 @@ class ConnectionBuilder(URLKeyBuilder):
         key=key
       )
     )
-    print('type of secret')
-    print(type(secret))
 
     return secret
   
-  def get_credentials(self, url):
+  def get_credentials(self, url: str) -> Tuple[str, str]:
     """
     Needed a way to do routine credential lookups.
     
@@ -331,7 +340,7 @@ class LocationBuilder(URLKeyBuilder):
   def __init__(self, *largs, **kwargs):
     super(URLKeyBuilder, self).__init__()
 
-  def build(self, url):
+  def build(self, url: str) -> Any:
     
     # Build the URL key
     url_key = self.build_url_key(url)
@@ -342,20 +351,6 @@ class LocationBuilder(URLKeyBuilder):
     location = location_class(url)
     
     return location
-
-
-class Location(URL):
-  """
-  Store URL information, will likely need to extend this
-  to do some custom things later. At the moment, just a
-  stub for extension
-  """
-
-  def __init__(self, *largs, **kwargs):
-    super(URL, self).__init__()
-
-  pass
-
 
 class DatabaseLocation(Location):
   """
