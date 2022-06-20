@@ -20,7 +20,7 @@ class BaseConnection(abc.ABC):
   or higher-level APIs instead.
   """
 
-  url = attrib(default=None)
+  url: str = attrib(default=None)
 
   @property
   def location(self):
@@ -103,7 +103,7 @@ class BaseBuilder(abc.ABC):
     
     self.handlers = dict()
 
-  def register(self, handler_key, handler):
+  def register(self, handler_key: str, handler: Any) -> None:
     """
     Registers a new subclass in handlers dictionary.
 
@@ -114,7 +114,7 @@ class BaseBuilder(abc.ABC):
 
     self.handlers[handler_key] = handler
 
-  def get_handler(self, handler_key):
+  def get_handler(self, handler_key: str) -> Any:
     """
     Find subclass based on key.
 
@@ -127,7 +127,7 @@ class BaseBuilder(abc.ABC):
     return self.handlers[handler_key]
 
   @abc.abstractmethod
-  def build(self):
+  def build(self) -> None:
     """
     This is the custom piece of a builder.
     
