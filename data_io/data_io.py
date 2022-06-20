@@ -9,6 +9,7 @@ from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from urlpath import URL
+from typing import Union, Any
 
 @attrs
 class BaseConnection(abc.ABC):
@@ -103,7 +104,7 @@ class BaseBuilder(abc.ABC):
     
     self.handlers = dict()
 
-  def register(self, handler_key: str, handler: BaseConnection | Location) -> None:
+  def register(self, handler_key: str, handler: Any) -> None:
     """
     Registers a new subclass in handlers dictionary.
 
@@ -114,7 +115,7 @@ class BaseBuilder(abc.ABC):
 
     self.handlers[handler_key] = handler
 
-  def get_handler(self, handler_key: str) -> BaseConnection | Location:
+  def get_handler(self, handler_key: str) -> Any:
     """
     Find subclass based on key.
 
