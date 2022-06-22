@@ -514,6 +514,124 @@ class RedshiftConnection(BaseConnection):
     return None
   
 
+class PostgresConnection(BaseConnection):
+  """
+  Postgres
+  
+  This needs to be reorganized so Postgres/Redshift and related connections
+  have far, far less redundant code.
+  """
+
+  def read(
+      self,
+      spark=None,
+      *largs,
+      **kwargs
+    ):
+    """
+    Read method for redshift data sources.
+    
+    Named inputs are assumed to be read parameters
+    
+    Args:
+      spark (spark session): spark thingy
+    
+    Returns:
+      data (spark DF): the data, YO
+    """
+
+    if spark is None:
+      
+      spark = SparkSession.builder.getOrCreate()
+  
+    # Set default read options
+    default_read_options = dict(
+      format='jdbc',
+      user=self.location.username,
+      driver="org.postgresql.Driver",
+      password=self.location.password,
+      forward_spark_s3_credentials=True,
+      url=self.jdbc_url,
+      mode='default'
+    )
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    read_options = default_read_options
+  
+    for option, value in kwargs.items():
+
+      read_options[option] = value
+  
+    # This is clunky, but we needed a way to support query/dbtable
+    if 'query' not in read_options.keys() and 'dbtable' not in read_options.keys():
+
+      read_options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
+
+    # Initialize the reader
+    reader = (
+      spark
+      .read
+      .format("jdbc")
+    )
+    
+    # Set options for the reader object
+    for option, value in read_options.items():
+      
+      reader = reader.option(option, value)
+
+    # Finally, load the data and return a pyspark DF
+    data = reader.load()
+
+    return data
+
+  def write(
+    self,
+    data,
+    *largs,
+    **kwargs
+  ):
+
+    # Set default read options
+    default_write_options = dict(
+      format='jdbc',
+      user=self.location.username,
+      driver="org.postgresql.Driver",
+      password=self.location.password,
+      forward_spark_s3_credentials=True,
+      url=self.jdbc_url,
+      mode='default'
+    )
+
+    writer = data.write
+
+    # We'll set the default read options then override with
+    # whatever the user wants
+    write_options = default_write_options
+  
+    for option, value in kwargs.items():
+
+      write_options[option] = value
+
+    # Set format and mode
+    writer = (
+      writer
+      .format(write_options['format'])
+      .mode(write_options['mode'])
+    )
+
+    # Remove format/mode so we can set options intelligenly
+    write_options.pop('format', None)
+    write_options.pop('mode', None)
+
+    # Set options for the reader object
+    for option, value in write_options.items():
+      
+      writer = writer.option(option, value)
+
+    writer.save()
+
+    return None
 class S3Connection(BaseConnection):
   """
   Read form and write to S3 buckets.
