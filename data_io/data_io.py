@@ -134,6 +134,15 @@ class BaseConnection(abc.ABC):
         return exists, has_data
 
     def _check_connection(self, *largs, **kwargs):
+        """
+        Verify that the specified connection object exists and has data.
+
+        Args:
+          largs/kwargs: pass through to self.read
+
+        Returns:
+          exists, has_data (tuple)
+        """
 
         data_frame = (
             self
@@ -150,6 +159,12 @@ class BaseConnection(abc.ABC):
         Examine the return of connection with specific filter applied.
 
         Note that small changes are required for S3 (and other non-SQL) reads.
+
+        Args:
+          filter_str (str): filter string to test
+
+        Returns:
+          exists, has_data ()
         """
 
         # Build the query string
@@ -157,7 +172,7 @@ class BaseConnection(abc.ABC):
     SELECT
       1
     FROM
-      {connection.location.schema}.{connection.location.table}
+      {self.location.schema}.{self.location.table}
     {f'WHERE {filter_str}' if filter_str is not None else ''}
     LIMIT 1"""
 
@@ -749,7 +764,6 @@ class S3Connection(DatabaseConnection):
         data_frame = (
             self
             .read(
-                *largs,
                 **kwargs
             )
             .filter(
@@ -775,7 +789,6 @@ class S3Connection(DatabaseConnection):
         reader = self.build_reader(
             spark=spark,
             default_read_options=default_read_options,
-            *largs,
             **kwargs
         )
 
