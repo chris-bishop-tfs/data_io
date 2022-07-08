@@ -1,6 +1,6 @@
 """Tools and builders used for standardized data IO"""
-
-# Let's setup the building blocks.
+from .location import build_location
+from .builder import URLKeyBuilder
 import abc
 import io
 import logging
@@ -10,8 +10,7 @@ from pyspark.sql import SparkSession, DataFrame, DataFrameReader, DataFrameWrite
 import pyspark.sql.functions as sf
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
-from urlpath import URL
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 
 @attrs
@@ -34,7 +33,7 @@ class BaseConnection(abc.ABC):
         want to cache this information (e.g., lru cache)
         """
 
-        return location_builder.build(self.url)
+        return build_location(self.url)
 
     @property
     def jdbc_url(self):
@@ -84,7 +83,7 @@ class BaseConnection(abc.ABC):
 
         raise NotImplementedError
 
-    def _check_source(self, data_frame):
+    def _check_source(self, *largs, **kwargs):
         """
         Validates read and catches reasons for failure. Proved useful
         when running source existence and has_data.
@@ -101,27 +100,38 @@ class BaseConnection(abc.ABC):
 
         try:
 
-            logging.info(f'Verifying {self.url} exist?')
+            logging.info(f'Verifying {self.url} exists.')
+
+            # This will fail of the table / source doesn't exist
+            data_frame = (
+              self
+              .read(
+                *largs,
+                **kwargs
+              )
+            )
 
             # We only need a single row to confirm existence and data integrity
             # (for now). This can be expanded in time.
             n_rows = len(
-                data_frame
-                .take(1)
+              data_frame
+              .take(1)
             )
 
             # If the read works, then the source exists
             exists = True
 
-        except java.sql.SQLException as e:
-            # Note that this exception handling isn't awesome at the moment.
-            # This will also trigger if there are errors in the SQL statement itself.
-            logging.exception(f'{self.url} does NOT exist.')
-            logging.debug(e)
+#         except java.sql.SQLException as e:
+#             # Note that this exception handling isn't awesome at the moment.
+#             # This will also trigger if there are errors in the SQL statement itself.
+#             logging.exception(f'{self.url} does NOT exist.')
+#             logging.debug(e)
 
         except Exception as e:
-
-            logging.exception(f'Unexpected Exception: {e}')
+            
+            # Error handling
+            logging.info(f'Unexpected Exception. Does your source exist?:\n\n')
+            logging.exception(e)
 
         finally:
             # exists and has_data returned
@@ -133,26 +143,6 @@ class BaseConnection(abc.ABC):
 
         return exists, has_data
 
-    def _check_connection(self, *largs, **kwargs):
-        """
-        Verify that the specified connection object exists and has data.
-
-        Args:
-          largs/kwargs: pass through to self.read
-
-        Returns:
-          exists, has_data (tuple)
-        """
-
-        data_frame = (
-            self
-            .read(
-                *largs,
-                **kwargs
-            )
-        )
-
-        return self._check_source(data_frame)
 
     def check_filter(self, filter_str=None, **kwargs):
         """
@@ -164,123 +154,23 @@ class BaseConnection(abc.ABC):
           filter_str (str): filter string to test
 
         Returns:
-          exists, has_data ()
+          exists, has_data
         """
 
         # Build the query string
         query = f"""
-    SELECT
-      1
-    FROM
-      {self.location.schema}.{self.location.table}
-    {f'WHERE {filter_str}' if filter_str is not None else ''}
-    LIMIT 1"""
+        SELECT
+          1
+        FROM
+          {self.location.schema}.{self.location.table}
+        {f'WHERE {filter_str}' if filter_str is not None else ''}
+        LIMIT 1"""
 
         logging.info(f"Checking filter '{filter_str}'")
 
         # Check the source with a filter in place.
         # We opt to use a SQL query so we push work back to the backend (when possible)
-        return self._check_connection(query=query)
-
-
-class Location(URL):
-    """
-    Store URL information, will likely need to extend this
-    to do some custom things later. At the moment, just a
-    stub for extension
-    """
-
-    def __init__(self, *largs, **kwargs):
-        super(URL, self).__init__()
-
-    pass
-
-
-class BaseBuilder(abc.ABC):
-    """
-    We'll be constructing several kinds of objects from a URL.
-    Rather than bake the build instructions into the objects
-    themselves, Bishop opted to leverage a builder pattern
-    to handle the instructions required to instantiate the
-    underlying objects.
-
-    Attributes:
-      handlers (dict): key-value pairs mapping keys to specifi
-                       subclasses (e.g., DatabaseLocation)
-
-    Methods:
-      register: Register a new subclass (handler)
-      get_handler: Get handler (value) corresponding to a key
-    """
-
-    def __init__(self, *largs, **kwargs):
-        super(abc.ABC, self).__init__()
-
-        self.handlers = dict()
-
-    def register(self, handler_key: str, handler: Union[BaseConnection, Location]) -> None:
-        """
-        Registers a new subclass in handlers dictionary.
-
-        Args:
-          handler_key (tuple): dictionary key
-          handler (class): subclass
-        """
-
-        self.handlers[handler_key] = handler
-
-    def get_handler(self, handler_key: str) -> Union[BaseConnection, Location]:
-        """
-        Find subclass based on key.
-
-        Args:
-          handler_key (tuple):
-
-        Returns:
-        """
-
-        return self.handlers[handler_key]
-
-    @abc.abstractmethod
-    def build(self) -> None:
-        """
-        This is the custom piece of a builder.
-
-        It will returned a constructed object
-        """
-
-        raise NotImplemented
-
-
-class URLKeyBuilder(BaseBuilder):
-    """
-    Simple extension of a builder that adds a method
-    to build a handler key from a URL.
-
-    Bishop ended up needing to build identical keys for
-    both Location and Connection builders. So, it made
-    more sense to centralize the functionality
-    """
-
-    def __init__(self, *largs, **kwargs):
-        super(BaseBuilder, self).__init__()
-
-    def build_url_key(self, url: str) -> str:
-        """
-        Parse URL to create the required key
-        """
-
-        # Convert URL into a location object
-        # This will be parsed, etc. correctly
-        location = URL(url)
-
-        # Build the connection key from the URL
-        #  scheme (protocol), extension?
-        #
-        #  KISS and use protocol only to start
-        url_key = (location.scheme,)
-
-        return url_key
+        return self._check_source(query=query)
 
 
 class ConnectionBuilder(URLKeyBuilder):
@@ -304,7 +194,7 @@ class ConnectionBuilder(URLKeyBuilder):
         url_key = self.build_url_key(url)
 
         # Generate a location object. This describes where the data are
-        location = location_builder.build(url)
+        location = build_location(url)
 
         # Let's get the handler so we can do some conditional checks
         connection_class = self.get_handler(url_key)
@@ -405,7 +295,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
         # Figure out the relevant base string for the
         # username and credentials.
-        location = location_builder.build(url)
+        location = build_location(url)
 
         # Makes formatted strings below nicer to work with
         # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
@@ -747,6 +637,68 @@ class S3Connection(DatabaseConnection):
     Read form and write to S3 buckets.
     """
 
+    def _check_source(self, filter_str, **kwargs):
+        """
+        Validates read and catches reasons for failure. Proved useful
+        when running source existence and has_data.
+
+        Args:
+          largs/kwargs passed through to self.read()
+
+        Returns:
+          exists, has_data (tuple)
+        """
+
+        n_rows = 0
+        exists = False
+
+        try:
+
+            logging.info(f'Verifying {self.url} exists.')
+
+            # This will fail of the table / source doesn't exist
+            data_frame = (
+              self
+              .read(
+                **kwargs
+              )
+              .filter(
+                sf.expr(filter_str)
+              )
+            )
+
+            # We only need a single row to confirm existence and data integrity
+            # (for now). This can be expanded in time.
+            n_rows = len(
+              data_frame
+              .take(1)
+            )
+
+            # If the read works, then the source exists
+            exists = True
+
+#         except java.sql.SQLException as e:
+#             # Note that this exception handling isn't awesome at the moment.
+#             # This will also trigger if there are errors in the SQL statement itself.
+#             logging.exception(f'{self.url} does NOT exist.')
+#             logging.debug(e)
+
+        except Exception as e:
+            
+            # Error handling
+            logging.info(f'Unexpected Exception. Does your source exist?:\n\n')
+            logging.exception(e)
+
+        finally:
+            # exists and has_data returned
+            has_data = n_rows > 0
+
+            # Print status for debugging
+            logging.debug(
+                f'{self.url}: Exists: {exists}, Has Data: {has_data}')
+
+        return exists, has_data
+
     def check_filter(self, filter_str=None, **kwargs):
         """
         Examine the return of connection with specific filter applied.
@@ -759,19 +711,19 @@ class S3Connection(DatabaseConnection):
 
         logging.info(f"Checking filter '{filter_str}'")
 
-        # Need to do something slightly different for S3 since we can't
-        # (easily) execute SQL directly.
-        data_frame = (
-            self
-            .read(
-                **kwargs
-            )
-            .filter(
-                sf.expr(filter_str)
-            )
-        )
+#         # Need to do something slightly different for S3 since we can't
+#         # (easily) execute SQL directly.
+#         data_frame = (
+#             self
+#             .read(
+#                 **kwargs
+#             )
+#             .filter(
+#                 sf.expr(filter_str)
+#             )
+#         )
 
-        return self._check_source(data_frame)
+        return self._check_source(filter_str)
 
     def read(
         self,
@@ -867,6 +819,34 @@ class OracleConnection(DatabaseConnection):
 
         return data
 
+    def check_filter(self, filter_str=None, **kwargs):
+        """
+        Examine the return of connection with specific filter applied.
+
+        Note that small changes are required for S3 (and other non-SQL) reads.
+
+        Args:
+          filter_str (str): filter string to test
+
+        Returns:
+          exists, has_data ()
+        """
+
+        # Build the query string
+        query = f"""
+        SELECT
+          1
+        FROM
+          {self.location.schema}.{self.location.table}
+        {f'WHERE {filter_str} AND' if filter_str is not None else ''}
+        ROWNUM=1"""
+
+        logging.info(f"Checking filter '{filter_str}'")
+
+        # Check the source with a filter in place.
+        # We opt to use a SQL query so we push work back to the backend (when possible)
+        return self._check_source(query=query)
+
     def write(
         self,
         data: DataFrame,
@@ -896,21 +876,12 @@ class OracleConnection(DatabaseConnection):
 
         return None
 
-
-# Let's configure our builders
-location_builder = LocationBuilder()
-location_builder.register(('redshift',), DatabaseLocation)
-location_builder.register(('oracle',), DatabaseLocation)
-location_builder.register(('postgresql',), DatabaseLocation)
-location_builder.register(('s3a',), Location)
-
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
 connection_builder.register(('redshift',), RedshiftConnection)
 connection_builder.register(('oracle',), OracleConnection)
 connection_builder.register(('postgresql',), PostgresqlConnection)
 connection_builder.register(('s3a',), S3Connection)
-
 
 def build_connection(url: str, *largs, **kwargs) -> BaseConnection:
     """

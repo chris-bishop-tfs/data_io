@@ -7,7 +7,7 @@ from setuptools import setup
 setup(
     name='data_io',
     # Hard code for now
-    version='0.1.5',
+    version='1.0.0',
     description='Standardize data IO at Thermo Fisher',
     author='Christopher Bishop',
     author_email='chris.bishop@thermofisher.com',
@@ -15,5 +15,4 @@ setup(
     keywords='jupyter mapreduce nteract pipeline notebook',
     url='https://github.com/chris-bishop-tfs/data_io',
     packages=['data_io']
-    # XXX Add requirements
 )
