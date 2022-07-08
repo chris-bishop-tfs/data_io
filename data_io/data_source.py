@@ -5,6 +5,7 @@ are built.
 """
 from .builder import BaseBuilder
 from .connection import build_connection, BaseConnection
+import abc
 import logging
 from attr import define, field
 
@@ -54,10 +55,14 @@ class StrtoFilter(object):
   Mostly a placeholder for now, but Bishop expects to add more
   complex functionality here in the future.
   """
-  def build(filter_str, *largs, **kwargs):
-    
+
+  def build(self, filter_str, *largs, **kwargs):
+    """
+    Barebones builder, just returns filter string
+    """
+
     return filter_str
-  
+
 
 class DataSourceBuilder(BaseBuilder):
     """

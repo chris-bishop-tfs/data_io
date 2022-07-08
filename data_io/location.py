@@ -67,6 +67,7 @@ class DatabaseLocation(Location):
         else:
             raise NotImplementedError
 
+
 # Register location building keys/classes
 location_builder = LocationBuilder()
 location_builder.register(('redshift',), DatabaseLocation)

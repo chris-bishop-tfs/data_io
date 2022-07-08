@@ -1,5 +1,5 @@
 """Tools and builders used for standardized data IO"""
-from .location import build_location
+from .location import build_location, DatabaseLocation
 from .builder import URLKeyBuilder
 import abc
 import io
@@ -10,7 +10,7 @@ from pyspark.sql import SparkSession, DataFrame, DataFrameReader, DataFrameWrite
 import pyspark.sql.functions as sf
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 
 @attrs
@@ -68,7 +68,7 @@ class BaseConnection(abc.ABC):
           data (Pyspark DataFrame): The data
         """
 
-        raise NotImplemented
+        raise NotImplementedError
 
     def write(
         self,
@@ -321,59 +321,6 @@ class ConnectionBuilder(URLKeyBuilder):
         password = config_parser.get(cred_base, 'password')
 
         return username, password
-
-
-class LocationBuilder(URLKeyBuilder):
-    """
-    Location Builder generates a location from a fully qualified URL
-    """
-
-    def __init__(self, *largs, **kwargs):
-        super(URLKeyBuilder, self).__init__()
-
-    def build(self, url: str) -> Location:
-
-        # Build the URL key
-        url_key = self.build_url_key(url)
-
-        location_class = self.get_handler(url_key)
-
-        # Get the location object
-        location = location_class(url)
-
-        return location
-
-
-class DatabaseLocation(Location):
-    """
-    Database connections require extra parsing
-    """
-
-    def __init__(self, *largs, **kwargs):
-        super(Location, self).__init__()
-
-        # Additional parsing and attributes for
-        # databases
-        # XXX
-        path_split = self.path.replace('/', '').split('.')
-
-        # Need some conditional formatting here
-        if len(path_split) == 3:
-            # db, schema, table
-            self.db, self.schema, self.table = path_split
-
-        elif len(path_split) == 2:
-            # db, table
-            # Occurs with backends like Impala
-            self.db, self.table = path_split
-            self.schema = None
-
-        # XXX Add another use case with just the database
-        elif len(path_split) == 1:
-            self.db = path_split[0]
-            self.schema = self.table = None
-        else:
-            raise NotImplementedError
 
 
 class DatabaseConnection(BaseConnection):
