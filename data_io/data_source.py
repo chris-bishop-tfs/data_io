@@ -33,7 +33,7 @@ class DataSource(abc.ABC):
 
   def has_data(self, *largs, **kwargs):
     """
-    
+    Check data source for data. 
     """
 
     # Run existence and has_data checks
@@ -56,7 +56,7 @@ class StrtoFilter(object):
   complex functionality here in the future.
   """
 
-  def build(self, filter_str, *largs, **kwargs):
+  def build(filter_str, *largs, **kwargs):
     """
     Barebones builder, just returns filter string
     """
@@ -97,10 +97,10 @@ class DataSourceBuilder(BaseBuilder):
         #
         # Glossing this for now, but we need to return to this.
         connection = build_connection(url)
-        
+
         # Build the data source
         data_source = DataSource(connection, filter_str)
-        
+
         return data_source
 
 
