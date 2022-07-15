@@ -11,6 +11,7 @@ import pyspark.sql.functions as sf
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from typing import Any, Optional, Tuple, Union
+from urlpath import URL
 
 
 @attrs
@@ -37,6 +38,17 @@ class BaseConnection(abc.ABC):
 
     @property
     def jdbc_url(self):
+
+        # setting default for port for redshift and oracle
+        # if(self.location.port == None):
+        #     if(self.location.scheme == 'oracle'):
+        #         port = 1521
+        #     elif(self.location.scheme == 'redshift'):
+        #         port = 5439
+
+        # else:
+        #     port = self.location.port
+
         """
         JDBC connection strings are required to connect to various backends
         such as Oracle, Redshift, Postgres, etc. This provides a default
@@ -48,6 +60,7 @@ class BaseConnection(abc.ABC):
             scheme=self.location.scheme,
             hostname=self.location.hostname,
             port=self.location.port,
+            # port = port,
             db=self.location.db
         )
 
@@ -732,6 +745,10 @@ class OracleConnection(DatabaseConnection):
     def jdbc_url(self) -> str:
 
         location = self.location
+        # if(location.port == None):
+        #     port = 1521
+        # else:
+        #     port = location.port
 
         # XXX `thin` driver hard-coded. Should make this smarter later.
         return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
