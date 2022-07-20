@@ -10,4 +10,3 @@ data_io.egg-info/SOURCES.txt
 data_io.egg-info/dependency_links.txt
 data_io.egg-info/requires.txt
 data_io.egg-info/top_level.txt
-test/test_connection.py
