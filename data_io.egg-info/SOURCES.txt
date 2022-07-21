@@ -4,6 +4,7 @@ data_io/__init__.py
 data_io/builder.py
 data_io/connection.py
 data_io/data_source.py
+data_io/get_credentials.py
 data_io/location.py
 data_io.egg-info/PKG-INFO
 data_io.egg-info/SOURCES.txt
