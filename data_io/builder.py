@@ -81,18 +81,7 @@ class URLKeyBuilder(BaseBuilder):
         # Convert URL into a location object
         # This will be parsed, etc. correctly
         location = URL(url)
-        # I will add default ports for redshift and oracle
-        if(location.port == None):
-          # adding port for oracle
-          if(location.scheme == 'oracle'):
-            url_list = url.split('.com/')
-            url = url_list[0] + '.com' + ':1521' + '/' + url_list[1]
-          # adding port for redshift
-          elif(location.scheme == 'redshift'):
-            url_list = url.split('.com/')
-            url = url_list[0] + '.com' + ':5439' + '/' + url_list[1]
 
-          location = URL(url)
 
 
 
