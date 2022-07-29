@@ -27,8 +27,7 @@ class LocationBuilder(URLKeyBuilder):
 
     def build(self, url: str) -> Location:
         '''
-        were adding a default port to url 
-        if there is not a port
+            default ports in builder
         '''
         path = URL(url)
         if((path.port == None) and (path.scheme != 's3a')):
