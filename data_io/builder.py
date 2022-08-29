@@ -82,14 +82,11 @@ class URLKeyBuilder(BaseBuilder):
         # This will be parsed, etc. correctly
         location = URL(url)
 
-
-
-
         # Build the connection key from the URL
         #  scheme (protocol), extension?
         #
         #  KISS and use protocol only to start
         url_key = (location.scheme,)
-        # url_key = location
+        
 
         return url_key

@@ -30,7 +30,8 @@ class LocationBuilder(URLKeyBuilder):
             default ports in builder
         '''
         # dictionary of defaul port
-        default_port = dict(oracle = '1521', redshift = '5439')
+        default_port = dict(oracle='1521', 
+        redshift='5439')
         path = URL(url)
         #checking if port is empty
         if((path.port == None) and (path.scheme != 's3a')):
