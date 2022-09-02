@@ -38,9 +38,6 @@ class BaseConnection(abc.ABC):
 
     @property
     def jdbc_url(self):
-
-
-
         """
         JDBC connection strings are required to connect to various backends
         such as Oracle, Redshift, Postgres, etc. This provides a default
@@ -52,7 +49,6 @@ class BaseConnection(abc.ABC):
             scheme=self.location.scheme,
             hostname=self.location.hostname,
             port=self.location.port,
-            # port = port,
             db=self.location.db
         )
 
@@ -737,8 +733,6 @@ class OracleConnection(DatabaseConnection):
     def jdbc_url(self) -> str:
 
         location = self.location
- 
-
         # XXX `thin` driver hard-coded. Should make this smarter later.
         return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
 
