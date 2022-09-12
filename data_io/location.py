@@ -12,8 +12,6 @@ class Location(URL):
 
     def __init__(self, *largs, **kwargs):
         super(URL, self).__init__()
-
-
         pass
 
 
