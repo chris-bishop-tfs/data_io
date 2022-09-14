@@ -1,7 +1,7 @@
 """Location classes used to describe data source"""
 from .builder import URLKeyBuilder
 from .builder import URL
-
+from urllib.parse import urlparse
 
 class Location(URL):
     """
@@ -12,8 +12,7 @@ class Location(URL):
 
     def __init__(self, *largs, **kwargs):
         super(URL, self).__init__()
-
-    pass
+        pass
 
 
 class LocationBuilder(URLKeyBuilder):
@@ -25,8 +24,19 @@ class LocationBuilder(URLKeyBuilder):
         super(URLKeyBuilder, self).__init__()
 
     def build(self, url: str) -> Location:
-
-        # Build the URL key
+        '''
+            default ports in builder
+        '''
+        # dictionary of defaul port
+        default_port = dict(oracle='1521', 
+        redshift='5439')
+        path = URL(url)
+        #checking if port is empty
+        if((path.port == None) and (path.scheme != 's3a')):
+            user = urlparse(url)
+            user = user._replace(netloc=
+            user.netloc + ':' + default_port[user.scheme])
+            url = user.geturl()
         url_key = self.build_url_key(url)
 
         location_class = self.get_handler(url_key)

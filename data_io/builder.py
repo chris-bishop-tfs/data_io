@@ -87,5 +87,5 @@ class URLKeyBuilder(BaseBuilder):
         #
         #  KISS and use protocol only to start
         url_key = (location.scheme,)
-
+        
         return url_key

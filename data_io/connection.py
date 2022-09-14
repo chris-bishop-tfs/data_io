@@ -11,6 +11,7 @@ import pyspark.sql.functions as sf
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from typing import Any, Optional, Tuple, Union
+from urlpath import URL
 
 
 @attrs
@@ -732,7 +733,6 @@ class OracleConnection(DatabaseConnection):
     def jdbc_url(self) -> str:
 
         location = self.location
-
         # XXX `thin` driver hard-coded. Should make this smarter later.
         return f"jdbc:oracle:thin:{location.username}/{location.password}@//{location.hostname}:{location.port}/{location.db}"
 
