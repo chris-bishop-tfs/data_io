@@ -26,20 +26,7 @@ class LocationBuilder(URLKeyBuilder):
         super(URLKeyBuilder, self).__init__()
 
     def build(self, url: str) -> Location:
-        '''
-        were adding a default port to url 
-        if there is not a port
-        '''
-        path = URL(url)
-        if((path.port == None) and (path.scheme != 's3a')):
-            # oracle default port
-            if(path.scheme == 'oracle'):
-                url_list = url.split('.com/')  
-                url = url_list[0] + '.com' + ':1521' + '/' + url_list[1]
-            # redshift default port
-            elif(path.scheme == 'redshift'):
-                url_list = url.split('.com/')
-                url = url_list[0] + '.com' + ':5439' + '/' + url_list[1]
+        
         # Build the URL key
         url_key = self.build_url_key(url)
 
