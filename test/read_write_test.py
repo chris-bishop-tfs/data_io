@@ -26,11 +26,11 @@ class DataioReadWrite(NutterFixture):
                 ['id', 'label']
                   )
     #s3 test location
-    self.s3_url = dbutils.secrets.get(scope= 'data_io.test', key = "s3_test")
+    self.s3_url = dbutils.secrets.get(scope='data_io.test', key="s3_test")
     # redshift and oracle location. These database where chosen since I have writing permission 
     # and I will not get introuble for writing to these locations
-    self.orcale_url = dbutils.secrets.get(scope= 'data_io.test', key = "oracle_test")
-    self.redshift_url = dbutils.secrets.get(scope= 'data_io.test', key = "redshift_test")
+    self.orcale_url = dbutils.secrets.get(scope='data_io.test', key="oracle_test")
+    self.redshift_url = dbutils.secrets.get(scope='data_io.test', key="redshift_test")
     NutterFixture.__init__(self)
     
   #method for testing the dataframes are the same

@@ -73,7 +73,7 @@ so we will go with nutter (https://github.com/microsoft/nutter)
 
 from runtime.nutterfixture import NutterFixture, tag
 
-class DataioConnectioTest(NutterFixture):
+class DataioConnectionTest(NutterFixture):
   
   def __init__(self):
     # here is where we would ge the connection
@@ -109,8 +109,8 @@ class DataioConnectioTest(NutterFixture):
     test = build_connection(oracle_list[0])
         
     #now we will set up test and connection
-    check = 'jdbc:' + redshift_list[0].split('user@')[0] + redshift_list[0].split('user@')[1]
-    test = build_connection(redshift_list[0]).jdbc_url.split('//')[1]
+    check = 'jdbc:' + oracle_list[0].split('user@')[0] + oracle_list[0].split('user@')[1]
+    test = build_connection(oracle_list[0]).jdbc_url.split('//')[1]
 #     print(test)
 #     print(check)
     return test, check
@@ -130,7 +130,7 @@ class DataioConnectioTest(NutterFixture):
     assert(test == check)
         
 # excute_test from NutterFixture        
-result = DataioConnectioTest().execute_tests()
+result = DataioConnectionTest().execute_tests()
 print(result.to_string())       
 
 # COMMAND ----------
