@@ -11,7 +11,6 @@ so we will go with nutter (https://github.com/microsoft/nutter)
 from runtime.nutterfixture import NutterFixture, tag
 
 class DataioReadWrite(NutterFixture):
-  
   """
   For this unittest we will kill 2 birds with one stone.
   where going to wirte a dummy dataframe to redshifts, S3, and oracle.
