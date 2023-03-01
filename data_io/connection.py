@@ -219,7 +219,7 @@ class ConnectionBuilder(URLKeyBuilder):
             _url = (
                 url
                 .replace(
-                    f'{username}@',
+                    'user@',
                     f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
                 )
             )
@@ -297,12 +297,10 @@ class ConnectionBuilder(URLKeyBuilder):
         # Figure out the relevant base string for the
         # username and credentials.
         location = build_location(url)
-        # getting username
-        username= URL(url).username
 
         # Makes formatted strings below nicer to work with
         # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
-        cred_base = f"{location.scheme}://{username}@{location.hostname}/{location.db}"
+        cred_base = f"{location.scheme}://user@{location.hostname}/{location.db}"
 
         # Let's get the new credentials.cfg
         # XXX Hard-coded credentials file name. Sloppy, Bishop. Sloppy.
@@ -320,7 +318,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
         # Retrieve username
         # Hard-coding OK here.
-        # username = location.username
+        username = config_parser.get(cred_base, 'username')
         password = config_parser.get(cred_base, 'password')
 
         return username, password

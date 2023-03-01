@@ -39,7 +39,8 @@ databricks secrets create-scope --scope <first name>.<last name>
 Next, generate a single file on your *local* machine that mimicks the following.
 
 ```
-[<scheme>://<username>@<hostname>/<path>]
+[<scheme>://user@<hostname>/<path>]
+username = <username>
 password = <password>
 ```
 
@@ -62,7 +63,7 @@ Reading from a single source (e.g., a table) in a database is straightforward. S
 
 ```
 # Example using Redshift data source
-url = 'redshift://<username>@<hostname>:<port>/<database>.<schema>.<table>'
+url = 'redshift://user@<hostname>:<port>/<database>.<schema>.<table>'
 
 connection = build_connection(url)
 
@@ -86,7 +87,7 @@ data = pd.DataFrame(dict(a=1, b=2), index=[0])
 data = spark.createDataFrame(data)
 
 # And let's try redshift now
-url = 'redshift://<username>@<hostname>:<port>/<database>.<schema>.<table>'
+url = 'redshift://user@<hostname>:<port>/<database>.<schema>.<table>'
 
 connection = build_connection(url)
 
@@ -109,7 +110,7 @@ Combining multiple sources from a single backend is a common use case. For examp
 
 ```
 # Connect to the database
-url = 'redshift://<username>@<hostname>:<port>/<database>
+url = 'redshift://user@<hostname>:<port>/<database>
 
 # Execute SQL
 connection = build_connection(url)
@@ -123,7 +124,7 @@ Alternatively, an identical result can be achieved by executing a SQL query thro
 
 ```
 # Oracle
-url = 'oracle://<username>@<hostname>:<port>/<SID>'
+url = 'oracle://user@<hostname>:<port>/<SID>'
 connection = build_connection(url)
 data = connection.read('SELECT * FROM <SID>.<table>')
 ```
