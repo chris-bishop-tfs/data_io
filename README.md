@@ -81,7 +81,20 @@ data = connection.read()
 # Equivalent call
 data = connection.read(query="SELECT * FROM <schema>.<table>")
 ```
+example using user_2
 
+```
+# Example using Redshift data source
+url = 'redshift://user_2@<hostname>:<port>/<database>.<schema>.<table>'
+
+connection = build_connection(url)
+
+# Returns a PySpark dataframe
+data = connection.read()
+
+# Equivalent call
+data = connection.read(query="SELECT * FROM <schema>.<table>")
+```
 #### Write
 
 Data can be written to a single location, such as an S3 bucket or Redshift table. Examples below.
@@ -94,8 +107,8 @@ data = pd.DataFrame(dict(a=1, b=2), index=[0])
 
 data = spark.createDataFrame(data)
 
-# And let's try redshift now for the second user
-url = 'redshift://user_2@<hostname>:<port>/<database>.<schema>.<table>'
+# And let's try redshift now
+url = 'redshift://user@<hostname>:<port>/<database>.<schema>.<table>'
 
 connection = build_connection(url)
 
