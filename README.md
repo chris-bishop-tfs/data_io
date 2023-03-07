@@ -131,7 +131,7 @@ Combining multiple sources from a single backend is a common use case. For examp
 
 ```
 # Connect to the database
-url = 'redshift://user_2@<hostname>:<port>/<database>
+url = 'redshift://user@<hostname>:<port>/<database>
 
 # Execute SQL
 connection = build_connection(url)
