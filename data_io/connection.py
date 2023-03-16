@@ -220,6 +220,7 @@ class ConnectionBuilder(URLKeyBuilder):
                 url
                 .replace(
                     f'{user}@',
+
                     f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
                 )
             )
