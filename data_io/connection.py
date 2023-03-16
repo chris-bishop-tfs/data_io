@@ -451,7 +451,8 @@ class RedshiftConnection(DatabaseConnection):
             # for multiple people?
             # XXX This should be set through a shared configuration
             # file so other groups can use it
-            tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
+            # tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
+            tempdir='s3a://tfsdl-lsg-lslpgds-test/redshift',
             # By default, read everything from the table
             # dbtable=f'{self.location.schema}.{self.location.table}'
             # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'
