@@ -211,7 +211,7 @@ class ConnectionBuilder(URLKeyBuilder):
             """
 
             # Get credentials
-            username, password = self.get_credentials(url)
+            username, password, user = self.get_credentials(url)
 
             # Alter location parts to create a new URL
             # Ran into URL parsing issues, so needed to
@@ -219,7 +219,8 @@ class ConnectionBuilder(URLKeyBuilder):
             _url = (
                 url
                 .replace(
-                    'user@',
+                    f'{user}@',
+
                     f'{urllib.parse.quote(username)}:{urllib.parse.quote(password)}@'
                 )
             )
@@ -297,10 +298,12 @@ class ConnectionBuilder(URLKeyBuilder):
         # Figure out the relevant base string for the
         # username and credentials.
         location = build_location(url)
+        # getting creds
+        user= URL(url).username
 
         # Makes formatted strings below nicer to work with
         # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.
-        cred_base = f"{location.scheme}://user@{location.hostname}/{location.db}"
+        cred_base = f"{location.scheme}://{user}@{location.hostname}/{location.db}"
 
         # Let's get the new credentials.cfg
         # XXX Hard-coded credentials file name. Sloppy, Bishop. Sloppy.
@@ -321,7 +324,7 @@ class ConnectionBuilder(URLKeyBuilder):
         username = config_parser.get(cred_base, 'username')
         password = config_parser.get(cred_base, 'password')
 
-        return username, password
+        return username, password, user
 
 
 class DatabaseConnection(BaseConnection):
@@ -449,7 +452,8 @@ class RedshiftConnection(DatabaseConnection):
             # for multiple people?
             # XXX This should be set through a shared configuration
             # file so other groups can use it
-            tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
+            # tempdir='s3a://tfsds-lsg-test/ingestion/redshift_temp',
+            tempdir='s3a://tfsdl-lsg-lslpgds-test/redshift',
             # By default, read everything from the table
             # dbtable=f'{self.location.schema}.{self.location.table}'
             # query=f'SELECT * FROM {self.location.schema}.{self.location.table}'

@@ -43,6 +43,14 @@ Next, generate a single file on your *local* machine that mimicks the following.
 username = <username>
 password = <password>
 ```
+and if there is another user for the same database, then
+
+```
+[<scheme>://user_2@<hostname>/<path>]
+username = <username>
+password = <password>
+```
+the next user for the same database is user_3, user_4, and so on
 
 This file must then be uploaded as a secret to the scope created above.
 
@@ -73,7 +81,20 @@ data = connection.read()
 # Equivalent call
 data = connection.read(query="SELECT * FROM <schema>.<table>")
 ```
+example using user_2
 
+```
+# Example using Redshift data source
+url = 'redshift://user_2@<hostname>:<port>/<database>.<schema>.<table>'
+
+connection = build_connection(url)
+
+# Returns a PySpark dataframe
+data = connection.read()
+
+# Equivalent call
+data = connection.read(query="SELECT * FROM <schema>.<table>")
+```
 #### Write
 
 Data can be written to a single location, such as an S3 bucket or Redshift table. Examples below.
