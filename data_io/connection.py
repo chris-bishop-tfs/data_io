@@ -489,7 +489,8 @@ class RedshiftConnection(DatabaseConnection):
             # 2022-02-15 CB: reenabled default
             dbtable=f"{self.location.schema}.{self.location.table}",
             forward_spark_s3_credentials=True,
-            tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
+            # tempdir="s3a://tfsds-lsg-test/ingestion/redshift_temp",
+            tempdir='s3a://tfsdl-lsg-lslpgds-test/redshift',
             mode='default'
         )
 
