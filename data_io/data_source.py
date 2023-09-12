@@ -8,6 +8,8 @@ from .connection import build_connection, BaseConnection
 import abc
 import logging
 from attr import define, field
+import datetime
+import pyspark.sql.functions as sf
 
 @define
 class DataSource(abc.ABC):
@@ -48,6 +50,22 @@ class DataSource(abc.ABC):
     )
 
     return has_data
+  
+  def has_been_append(self, time_collumn : str):
+    """
+    Checks if a table has been appended for 
+    todays date
+    
+    time_collumn --- string, name of column for datetime
+    """
+    # getting todays date
+    today = datetime.date.today()
+    #checking table
+    df = build_connection(self.url).read().filter(sf.col(time_collumn) == today)
+    check = df.rdd.isEmpty()
+    del df
+    return check
+    
 
 
 class StrtoFilter(object):
