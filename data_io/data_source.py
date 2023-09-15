@@ -51,17 +51,17 @@ class DataSource(abc.ABC):
 
     return has_data
   
-  def has_been_append(self, time_collumn : str):
+  def has_been_append(self, time_column : str):
     """
     Checks if a table has been appended for 
     todays date
     
-    time_collumn --- string, name of column for datetime
+    time_column --- string, name of column for datetime
     """
     # getting todays date
     today = datetime.date.today()
     #checking table
-    df = build_connection(self.connection.url).read().filter(sf.col(time_collumn) == today)
+    df = build_connection(self.connection.url).read().filter(sf.col(time_column) == today)
     check = not df.rdd.isEmpty()
     del df
     return check
