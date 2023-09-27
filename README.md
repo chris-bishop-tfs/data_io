@@ -9,11 +9,11 @@ The package currently supports R/W in S3, Redshift, and Oracle. Extending the pa
 
 ## Installation in Databricks
 
-Install the package as an `egg` in the desired cluster. These will be provided or can by built using standard Python utilities.
+Install the package as an `wheel` in the desired cluster. These will be provided or can by built using standard Python utilities.
 
 ```
 # Example of building egg locally
-python .\setup.py bdist_egg
+python .\setup.py bdist_wheel
 ```
 
 ## Credential Cacheing
@@ -155,4 +155,41 @@ data = connection.read('SELECT * FROM <SID>.<table>')
 url = 's3a://<bucket>/<file>'
 connection = build_connection(url)
 data = connection.read()
+```
+## build_data_source
+
+### Checking if a table exsit
+
+This method returns a Boolean. Example:
+
+```
+from data_io import build_data_source
+
+url = 'redshift://user@gitx-ops-data-warehouse.ccihmrvnkut2.us-east-1.redshift.amazonaws.com:5439/gitx.dev_ds.leadshop_funnel'
+
+build_data_source(url, None).exists()
+```
+
+### Checking if table has data
+
+The `has_data()` method checks if a table has data and returns a Boolean. Example: 
+
+```
+from data_io import build_data_source
+
+url = 'redshift://user@gitx-ops-data-warehouse.ccihmrvnkut2.us-east-1.redshift.amazonaws.com:5439/gitx.dev_ds.leadshop_funnel'
+
+build_data_source(url, None).has_data()
+```
+
+### Checking if a table has been appended
+
+The `has_been_append(‘<time stamp column name>’)` method checks if data has been refresh today. This prevents duplicates. Example:
+
+```
+from data_io import build_data_source
+
+url = 'redshift://user@gitx-ops-data-warehouse.ccihmrvnkut2.us-east-1.redshift.amazonaws.com:5439/gitx.dev_ds.leadshop_funnel'
+
+build_data_source(url, None)has_been_append(‘time_prd_val’)
 ```
