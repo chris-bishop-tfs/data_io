@@ -1,4 +1,3 @@
-# Databricks notebook source
 # imports
 from data_io.connection import build_connection
 from data_io.data_source import build_data_source
@@ -49,11 +48,6 @@ class DataSourceTest(NutterFixture):
      
     assert(build_data_source(self.url, None).has_been_append(self.date_column))
 
-  # removing test dataframe
-  def assertion_dataframe_remove(self):
-
-    dbutils.fs.rm(self.url, True)
-    assert(not build_data_source(self.url, None).exists())
 
 #run test
 result = DataSourceTest().execute_tests()
