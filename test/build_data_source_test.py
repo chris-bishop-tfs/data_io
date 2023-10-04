@@ -25,6 +25,27 @@ class DataSourceTest(NutterFixture):
                 (2, datetime.date.today(), 'bar')],
                 ['id', 'time_prd_val', 'label']
                   )
+      # creating empty dataframe for test
+      column_names = "ColA|ColB|ColC"
+      self.df_empty  = spark.createDataFrame(
+                  [
+                   tuple('' for i in column_names.split("|"))
+                ],
+                column_names.split("|")
+                ).where("1=0")
+      self.url_empty = 'redshift://user@gitx-ops-data-warehouse.ccihmrvnkut2.us-east-1.redshift.amazonaws.com/gitx.dev_ds.test_no_data'
+      build_connection(self.url_empty).write(self.df_empty, mode='overwrite')
+      # wrong date dataframe
+      self.df_not_append = spark.createDataFrame([
+                (1, datetime.date.today() + datetime.timedelta(days=10), 'foo'),
+                (2, datetime.date.today() + datetime.timedelta(days=10), 'bar')],
+                ['id', 'time_prd_val', 'label']
+                  )
+      # url of date
+      self.url_worng_date = 's3a://tfsds-lsg-test/test_worng_date'
+      build_connection(self.url_worng_date).write(self.df_not_append, mode='overwrite')
+      # url non existing dataframe
+      self.url_non_exsit = 's3a://tfsds-lsg-test/test_not_exsit'
         # column for append method
       self.date_column = 'time_prd_val'
         #url store dataframe
@@ -47,6 +68,21 @@ class DataSourceTest(NutterFixture):
   def assertion_has_been_appended(self):
      
     assert(build_data_source(self.url, None).has_been_append(self.date_column))
+
+  # checking false return for data
+  def assertion_has_data_false(self):
+
+    assert(not build_data_source(self.url_empty, None).has_data())
+
+  # checkin does not exsit
+  def assertion_not_exsit(self):
+
+    assert(not build_data_source(self.url_non_exsit, None).exists())
+
+  # checking has not been appended
+  def assertion_not_append(self):
+
+    assert(not build_data_source(self.url_worng_date, None).has_been_append(self.date_column))
 
 
 #run test
