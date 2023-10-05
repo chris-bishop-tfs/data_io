@@ -45,7 +45,7 @@ class DataSourceTest(NutterFixture):
       self.url_worng_date = 's3a://tfsds-lsg-test/test_worng_date'
       build_connection(self.url_worng_date).write(self.df_not_append, mode='overwrite')
       # url non existing dataframe
-      self.url_non_exsit = 's3a://tfsds-lsg-test/test_not_exsit'
+      self.url_non_exist = 's3a://tfsds-lsg-test/test_not_exist'
         # column for append method
       self.date_column = 'time_prd_val'
         #url store dataframe
@@ -59,8 +59,8 @@ class DataSourceTest(NutterFixture):
      
     assert(build_data_source(self.url, None).has_data())
 
-  # checking if exsit
-  def assertion_exsit(self):
+  # checking if exist
+  def assertion_exist(self):
      
     assert(build_data_source(self.url, None).exists())
 
@@ -74,10 +74,10 @@ class DataSourceTest(NutterFixture):
 
     assert(not build_data_source(self.url_empty, None).has_data())
 
-  # checkin does not exsit
-  def assertion_not_exsit(self):
+  # checkin does not exist
+  def assertion_not_exist(self):
 
-    assert(not build_data_source(self.url_non_exsit, None).exists())
+    assert(not build_data_source(self.url_non_exist, None).exists())
 
   # checking has not been appended
   def assertion_not_append(self):
