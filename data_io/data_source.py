@@ -61,7 +61,7 @@ class DataSource(abc.ABC):
     # getting todays date
     today = datetime.date.today()
     #checking table
-    df = build_connection(self.connection.url).read().filter(sf.col(time_column) == today)
+    df = self.connection.read().filter(sf.col(time_column) == today)
     check = not df.rdd.isEmpty()
     del df
     return check
