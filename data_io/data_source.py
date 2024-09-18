@@ -104,7 +104,7 @@ class DataSourceBuilder(BaseBuilder):
           filter_builder = self.get_handler(filter_key)
 
           # Now we have the filter string we need.
-          filter_str = filter_builder.build(filter_spec)
+          filter_str = filter_builder().build(filter_spec)
         else:
           filter_str = None
 
