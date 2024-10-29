@@ -37,7 +37,6 @@ databricks secrets create-scope --scope <first name>.<last name>
 ```
 
 Next, generate a single file on your *local* machine that mimicks the following.
-**Note: ** you can search for the existing file .databrickscfg (txt file) which is often located in C:\Users\your_windows_user_name (for Windows user)
 ```
 [<scheme>://user@<hostname>/<path>]
 username = <username>
