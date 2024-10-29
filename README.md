@@ -41,7 +41,7 @@ databricks secrets create-scope --scope <first name>.<last name>
 ```
 
 Next, generate a single file on your *local* machine that mimicks the following.
-
+Note that :<port> information should not be part of the path.
 ```
 [<scheme>://user@<hostname>/<path>]
 username = <username>
