@@ -18,6 +18,10 @@ python .\setup.py bdist_wheel
 
 ## Credential Cacheing
 
+*Below instructions are for a legacy version of Databricks CLI* 
+```
+pip install databricks-cli==0.18.0
+```
 In its current instantiation, credentials are stored in a `credentials.cfg` file in a user-specific scope in Databricks. The file follows standard INI formatting.
 
 
