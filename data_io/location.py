@@ -1,18 +1,59 @@
 """Location classes used to describe data source"""
+import abc
+from attrs import define
 from .builder import URLKeyBuilder
-from .builder import URL
 from urllib.parse import urlparse
 
-class Location(URL):
+@define
+class Location(abc.ABC):
     """
-    Store URL information, will likely need to extend this
-    to do some custom things later. At the moment, just a
-    stub for extension
+    Base Location object.
+    
+    Note that this was originally a minor extension of urlpath's URL class, but changes in python 3.12 nuked this class.
+
+    Bishop instead wrote a barebones class that can standalone over time.
+
+    Not terribly elegant, but more robust.
+
+    Don't like it? Write your own :)
     """
 
-    def __init__(self, *largs, **kwargs):
-        super(URL, self).__init__()
-        pass
+    url: str = None
+
+    def __repr__(self):
+        return self.url
+
+    @property
+    def _parsed_url(self):
+        return urlparse(self.url)
+
+    @property
+    def scheme(self):
+        return self._parsed_url.scheme
+  
+    @property
+    def username(self):
+        return self._parsed_url.username
+
+    @property
+    def hostname(self):
+        return self._parsed_url.hostname
+
+    @property
+    def password(self):
+        return self._parsed_url.password
+
+    @property
+    def scheme(self):
+        return self._parsed_url.scheme
+  
+    @property
+    def port(self):
+        return self._parsed_url.port
+    
+    @property
+    def path(self):
+        return self._parsed_url.path
 
 
 class LocationBuilder(URLKeyBuilder):
@@ -30,7 +71,8 @@ class LocationBuilder(URLKeyBuilder):
         # dictionary of defaul port
         default_port = dict(oracle='1521', 
         redshift='5439')
-        path = URL(url)
+        path = urlparse(url)
+
         #checking if port is empty
         if((path.port == None) and (path.scheme != 's3a')):
             user = urlparse(url)
@@ -52,9 +94,11 @@ class DatabaseLocation(Location):
     Database connections require extra parsing
     """
 
-    def __init__(self, *largs, **kwargs):
+    def __init__(self, url):
         super(Location, self).__init__()
 
+        self.url = url
+    
         # Additional parsing and attributes for
         # databases
         path_split = self.path.replace('/', '').split('.')

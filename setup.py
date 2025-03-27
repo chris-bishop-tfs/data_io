@@ -7,7 +7,7 @@ from setuptools import setup
 setup(
     name='data_io',
     # Hard code for now
-    version='0.2.3',
+    version='0.2.4',
     description='Standardize data IO at Thermo Fisher',
     author='Christopher Bishop',
     author_email='chris.bishop@thermofisher.com',
@@ -18,7 +18,6 @@ setup(
     install_requires=[
         'pyspark>=3.2.1',
         'attrs',
-        'urlpath',
         'nutter'
     ]
 )
