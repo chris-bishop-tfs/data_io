@@ -11,6 +11,7 @@ import pyspark.sql.functions as sf
 from pyspark.dbutils import DBUtils
 from configparser import RawConfigParser
 from typing import Any, Optional, Tuple, Union
+from urlpath import URL
 
 
 @attrs
@@ -297,9 +298,8 @@ class ConnectionBuilder(URLKeyBuilder):
         # Figure out the relevant base string for the
         # username and credentials.
         location = build_location(url)
-
         # getting creds
-        user = location.username
+        user= URL(url).username
 
         # Makes formatted strings below nicer to work with
         # XXX Hard-coded user@. Sloppy, Bishop. Sloppy.

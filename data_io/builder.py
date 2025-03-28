@@ -1,7 +1,7 @@
 """Base builder classes"""
 import abc
 from typing import Union
-from urllib.parse import urlparse
+from urlpath import URL
 
 
 class BaseBuilder(abc.ABC):
@@ -80,8 +80,7 @@ class URLKeyBuilder(BaseBuilder):
 
         # Convert URL into a location object
         # This will be parsed, etc. correctly
-        # Removed URL dependency due to deprecation
-        location = urlparse(url)
+        location = URL(url)
 
         # Build the connection key from the URL
         #  scheme (protocol), extension?
