@@ -41,12 +41,11 @@ class Location(abc.ABC):
 
     @property
     def password(self):
-        # Regex to match everything between the first ":" and the last "@"
-        credential_match = re.search(r'://[^:]+:(.+)@', self.url)
-        
-        if credential_match:
-            # Extract the full password part and URL decode it
-            full_password = credential_match.group(1)
+        match = re.search(r'://[^:]+:(.*?)(?=@[^@]*$)', url)
+    
+        if match:
+            # Extract and decode the password
+            full_password = match.group(1)
             return unquote(full_password)
         return None
 
