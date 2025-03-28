@@ -4,6 +4,17 @@ from attrs import define
 from .builder import URLKeyBuilder
 from urllib.parse import urlparse
 
+def parse_password(url):
+    # More comprehensive regex to match from first ':' after scheme to last '@'
+    # This handles URLs with complex passwords and multiple potential '@' characters
+    match = re.search(r'://[^:]+:(.*?)(?=@[^@]*$)', url)
+    
+    if match:
+        # Extract and decode the password
+        full_password = match.group(1)
+        return unquote(full_password)
+    return None
+
 @define
 class Location(abc.ABC):
     """
@@ -41,13 +52,7 @@ class Location(abc.ABC):
 
     @property
     def password(self):
-        match = re.search(r'://[^:]+:(.*?)(?=@[^@]*$)', url)
-    
-        if match:
-            # Extract and decode the password
-            full_password = match.group(1)
-            return unquote(full_password)
-        return None
+        return parse_password(self.url)
 
     @property
     def scheme(self):
