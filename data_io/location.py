@@ -1,69 +1,18 @@
 """Location classes used to describe data source"""
-import abc
-from attrs import define
 from .builder import URLKeyBuilder
+from .builder import URL
 from urllib.parse import urlparse
-import urllib
 
-@define
-class Location(abc.ABC):
+class Location(URL):
     """
-    Base Location object.
-    
-    Note that this was originally a minor extension of urlpath's URL class, but changes in python 3.12 nuked this class.
-
-    Bishop instead wrote a barebones class that can standalone over time.
-
-    Not terribly elegant, but more robust.
-
-    Don't like it? Write your own :)
+    Store URL information, will likely need to extend this
+    to do some custom things later. At the moment, just a
+    stub for extension
     """
 
-    url: str = None
-
-    def __repr__(self):
-        return self.url
-
-    def _unquote(self, result):
-        """
-        URLs are special character encoded ("%" encoded)
-        Use this function to undo that
-        """
-        return urllib.parse.unquote(result)
-
-    @property
-    def _parsed_url(self):
-        return urlparse(self.url)
-
-    @property
-    def scheme(self):
-        return self._parsed_url.scheme
-  
-    @property
-    def username(self):
-        # Usernames can be encoded - so unencode it
-        return self._unquote(self._parsed_url.username)
-
-    @property
-    def hostname(self):
-        return self._parsed_url.hostname
-
-    @property
-    def password(self):
-        # Can be encoded - so unencode it
-        return self._unquote(self._parsed_url.password)
-
-    @property
-    def scheme(self):
-        return self._parsed_url.scheme
-  
-    @property
-    def port(self):
-        return self._parsed_url.port
-    
-    @property
-    def path(self):
-        return self._parsed_url.path
+    def __init__(self, *largs, **kwargs):
+        super(URL, self).__init__()
+        pass
 
 
 class LocationBuilder(URLKeyBuilder):
