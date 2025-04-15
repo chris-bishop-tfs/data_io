@@ -185,7 +185,7 @@ class ConnectionBuilder(URLKeyBuilder):
     def __init__(self, *largs, **kwargs):
         super(URLKeyBuilder, self).__init__()
 
-    def build(self, url: str) -> BaseConnection:
+    def build(self, url: str, db_schema: str='') -> BaseConnection:
         """
         Build a connection and return it
         """
@@ -210,7 +210,7 @@ class ConnectionBuilder(URLKeyBuilder):
             """
 
             # Get credentials
-            username, password, user = self.get_credentials(url)
+            username, password, user = self.get_credentials(url, db_schema)
 
             # Alter location parts to create a new URL
             # Ran into URL parsing issues, so needed to
@@ -280,7 +280,7 @@ class ConnectionBuilder(URLKeyBuilder):
 
         return secret
 
-    def get_credentials(self, url: str) -> Tuple[str, str]:
+    def get_credentials(self, url: str, db_schema: str='') -> Tuple[str, str]:
         """
         Needed a way to do routine credential lookups.
 
@@ -321,8 +321,24 @@ class ConnectionBuilder(URLKeyBuilder):
 
         # Retrieve username
         # Hard-coding OK here.
-        username = config_parser.get(cred_base, 'username')
-        password = config_parser.get(cred_base, 'password')
+
+        # if specify database
+        if len(db_schema) > 0:
+            try:
+                # if database specific credentials available, use them
+                cred_base_temp = cred_base + '.' + db_schema
+                username = config_parser.get(cred_base_temp, 'username')
+                password = config_parser.get(cred_base_temp, 'password')
+            except Exception as e:
+                # if no database specific credentials available, fall back to database level credentials
+                if "No section" in str(e):
+                    username = config_parser.get(cred_base, 'username')
+                    password = config_parser.get(cred_base, 'password')
+                else:
+                    raise(e)
+        else:
+            username = config_parser.get(cred_base, 'username')
+            password = config_parser.get(cred_base, 'password')
 
         return username, password, user
 
