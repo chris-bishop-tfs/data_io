@@ -81,7 +81,9 @@ class LocationBuilder(URLKeyBuilder):
         # dictionary of defaul port
         default_port = dict(oracle='1521', 
         redshift='5439')
-        path = URL(url)
+
+        path = urlparse(url)
+
         #checking if port is empty
         if((path.port == None) and (path.scheme != 's3a')):
             user = urlparse(url)
@@ -103,8 +105,10 @@ class DatabaseLocation(Location):
     Database connections require extra parsing
     """
 
-    def __init__(self, *largs, **kwargs):
+    def __init__(self, url):
         super(Location, self).__init__()
+
+        self.url = url
 
         # Additional parsing and attributes for
         # databases
