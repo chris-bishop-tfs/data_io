@@ -72,4 +72,22 @@ print(result.to_string())
 
 # COMMAND ----------
 
+# MAGIC %load_ext autoreload
+# MAGIC %autoreload 2
 
+# COMMAND ----------
+
+GITX_CONN_URL = 'redshift://user@gitx-ops-data-warehouse.ccihmrvnkut2.us-east-1.redshift.amazonaws.com:5439/gitx'
+from data_io import build_connection
+
+# COMMAND ----------
+
+df = build_connection(GITX_CONN_URL).read(
+  query="""SELECT
+          location_uid
+        FROM lsg_cdp.profile""".strip()
+)
+
+# COMMAND ----------
+
+display(df)

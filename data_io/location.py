@@ -1,8 +1,9 @@
 """Location classes used to describe data source"""
 import abc
+import re
 from attrs import define
 from .builder import URLKeyBuilder
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 def parse_password(url):
     # More comprehensive regex to match from first ':' after scheme to last '@'
@@ -12,7 +13,7 @@ def parse_password(url):
     if match:
         # Extract and decode the password
         full_password = match.group(1)
-        return unquote(full_password)
+        return unquote(full_password) 
     return None
 
 @define
