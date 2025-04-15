@@ -2,8 +2,8 @@
 import abc
 from attrs import define
 from .builder import URLKeyBuilder
-import urllib
 from urllib.parse import urlparse
+import urllib
 
 @define
 class Location(abc.ABC):
