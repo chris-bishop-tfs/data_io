@@ -77,7 +77,6 @@ print(result.to_string())
 
 # COMMAND ----------
 
-GITX_CONN_URL = 
 from data_io import build_connection
 
 # COMMAND ----------
