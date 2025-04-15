@@ -14,7 +14,7 @@ def parse_password(url):
     if match:
         # Extract and decode the password
         full_password = match.group(1)
-        return unquote(full_password) 
+        return full_password
     return None
 
 @define

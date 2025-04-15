@@ -18,6 +18,10 @@ python .\setup.py bdist_wheel
 
 ## Credential Cacheing
 
+*Below instructions are for a legacy version of Databricks CLI* 
+```
+pip install databricks-cli==0.18.0
+```
 In its current instantiation, credentials are stored in a `credentials.cfg` file in a user-specific scope in Databricks. The file follows standard INI formatting.
 
 
@@ -37,6 +41,7 @@ databricks secrets create-scope --scope <first name>.<last name>
 ```
 
 Next, generate a single file on your *local* machine that mimicks the following.
+Note that :<port> information should not be part of the path.
 ```
 [<scheme>://user@<hostname>/<path>]
 username = <username>
@@ -50,6 +55,17 @@ username = <username>
 password = <password>
 ```
 the next user for the same database is user_3, user_4, and so on
+
+If there are two sets of credentials for the same database, then 
+```
+[<scheme>://user@<hostname>/<path>.<schema1>]
+username = <username>
+password = <password>
+
+[<scheme>://user@<hostname>/<path>.<schema2>]
+username = <username>
+password = <password>
+```
 
 This file must then be uploaded as a secret to the scope created above.
 
