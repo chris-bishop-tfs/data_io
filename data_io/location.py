@@ -2,6 +2,7 @@
 import abc
 from attrs import define
 from .builder import URLKeyBuilder
+import urllib
 from urllib.parse import urlparse
 
 @define
@@ -23,6 +24,13 @@ class Location(abc.ABC):
     def __repr__(self):
         return self.url
 
+    def _unquote(self, result):
+        """
+        URLs are special character encoded ("%" encoded)
+        Use this function to undo that
+        """
+        return urllib.parse.unquote(result)
+
     @property
     def _parsed_url(self):
         return urlparse(self.url)
@@ -33,7 +41,8 @@ class Location(abc.ABC):
   
     @property
     def username(self):
-        return self._parsed_url.username
+        # Usernames can be encoded - so unencode it
+        return self._unquote(self._parsed_url.username)
 
     @property
     def hostname(self):
@@ -41,7 +50,8 @@ class Location(abc.ABC):
 
     @property
     def password(self):
-        return self._parsed_url.password
+        # Can be encoded - so unencode it
+        return self._unquote(self._parsed_url.password)
 
     @property
     def scheme(self):
