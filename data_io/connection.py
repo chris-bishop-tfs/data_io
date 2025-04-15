@@ -321,8 +321,24 @@ class ConnectionBuilder(URLKeyBuilder):
 
         # Retrieve username
         # Hard-coding OK here.
-        username = config_parser.get(cred_base, 'username')
-        password = config_parser.get(cred_base, 'password')
+
+        # if specify database
+        if location.schema:
+            try:
+                # if database specific credentials available, use them
+                cred_base_temp = cred_base + '.' + location.schema
+                username = config_parser.get(cred_base_temp, 'username')
+                password = config_parser.get(cred_base_temp, 'password')
+            except Exception as e:
+                # if no database specific credentials available, fall back to database level credentials
+                if "No section" in str(e):
+                    username = config_parser.get(cred_base, 'username')
+                    password = config_parser.get(cred_base, 'password')
+                else:
+                    raise(e)
+        else:
+            username = config_parser.get(cred_base, 'username')
+            password = config_parser.get(cred_base, 'password')
 
         return username, password, user
 

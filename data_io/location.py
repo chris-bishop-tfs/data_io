@@ -1,9 +1,21 @@
 """Location classes used to describe data source"""
 import abc
+import re
 from attrs import define
 from .builder import URLKeyBuilder
 from urllib.parse import urlparse
 import urllib
+
+def parse_password(url):
+    # More comprehensive regex to match from first ':' after scheme to last '@'
+    # This handles URLs with complex passwords and multiple potential '@' characters
+    match = re.search(r'://[^:]+:(.*?)(?=@[^@]*$)', url)
+    
+    if match:
+        # Extract and decode the password
+        full_password = match.group(1)
+        return full_password
+    return None
 
 @define
 class Location(abc.ABC):
@@ -51,7 +63,8 @@ class Location(abc.ABC):
     @property
     def password(self):
         # Can be encoded - so unencode it
-        return self._unquote(self._parsed_url.password)
+        return self._unquote(parse_password(self.url))
+
 
     @property
     def scheme(self):

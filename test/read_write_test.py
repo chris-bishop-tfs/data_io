@@ -1,7 +1,7 @@
 # Databricks notebook source
 # imports
 from data_io.connection import build_connection
-from urlpath import URL
+from urllib.parse import urlparse, unquote
 from pyspark.sql import SparkSession
 from pyspark.dbutils import DBUtils
 """
@@ -69,7 +69,3 @@ class DataioReadWrite(NutterFixture):
 # excute_test from NutterFixture        
 result = DataioReadWrite().execute_tests()
 print(result.to_string())      
-
-# COMMAND ----------
-
-
