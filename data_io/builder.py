@@ -80,7 +80,6 @@ class URLKeyBuilder(BaseBuilder):
 
         # Convert URL into a location object
         # This will be parsed, etc. correctly
-        # Removed URL dependency due to deprecation
         location = urlparse(url)
 
         # Build the connection key from the URL

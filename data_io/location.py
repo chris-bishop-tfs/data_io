@@ -3,7 +3,8 @@ import abc
 import re
 from attrs import define
 from .builder import URLKeyBuilder
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse
+import urllib
 
 def parse_password(url):
     # More comprehensive regex to match from first ':' after scheme to last '@'
@@ -35,6 +36,13 @@ class Location(abc.ABC):
     def __repr__(self):
         return self.url
 
+    def _unquote(self, result):
+        """
+        URLs are special character encoded ("%" encoded)
+        Use this function to undo that
+        """
+        return urllib.parse.unquote(result)
+
     @property
     def _parsed_url(self):
         return urlparse(self.url)
@@ -45,7 +53,8 @@ class Location(abc.ABC):
   
     @property
     def username(self):
-        return unquote(self._parsed_url.username)
+        # Usernames can be encoded - so unencode it
+        return self._unquote(self._parsed_url.username)
 
     @property
     def hostname(self):
@@ -53,7 +62,9 @@ class Location(abc.ABC):
 
     @property
     def password(self):
-        return parse_password(self.url)
+        # Can be encoded - so unencode it
+        return self._unquote(parse_password(self.url))
+
 
     @property
     def scheme(self):
@@ -83,6 +94,7 @@ class LocationBuilder(URLKeyBuilder):
         # dictionary of defaul port
         default_port = dict(oracle='1521', 
         redshift='5439')
+
         path = urlparse(url)
 
         #checking if port is empty
@@ -110,7 +122,7 @@ class DatabaseLocation(Location):
         super(Location, self).__init__()
 
         self.url = url
-    
+
         # Additional parsing and attributes for
         # databases
         path_split = self.path.replace('/', '').split('.')

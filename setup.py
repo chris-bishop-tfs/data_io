@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'pyspark>=3.2.1',
         'attrs',
+        'urlpath',
         'nutter'
     ]
 )
