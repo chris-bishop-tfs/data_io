@@ -45,7 +45,7 @@ class Location(abc.ABC):
   
     @property
     def username(self):
-        return self._parsed_url.username
+        return unquote(self._parsed_url.username)
 
     @property
     def hostname(self):
