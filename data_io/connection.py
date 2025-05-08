@@ -850,6 +850,7 @@ connection_builder.register(('redshift',), RedshiftConnection)
 connection_builder.register(('oracle',), OracleConnection)
 connection_builder.register(('postgresql',), PostgresqlConnection)
 connection_builder.register(('s3a',), S3Connection)
+connection_builder.register(('s3',), S3Connection)
 
 def build_connection(url: str, *largs, **kwargs) -> BaseConnection:
     """
