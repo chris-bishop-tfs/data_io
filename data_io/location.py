@@ -98,7 +98,7 @@ class LocationBuilder(URLKeyBuilder):
         path = urlparse(url)
 
         #checking if port is empty
-        if((path.port == None) and (path.scheme != 's3a')):
+        if((path.port == None) and (path.scheme != 's3a')) and (path.scheme != 's3')):
             user = urlparse(url)
             user = user._replace(netloc=
             user.netloc + ':' + default_port[user.scheme])
@@ -152,6 +152,7 @@ location_builder.register(('redshift',), DatabaseLocation)
 location_builder.register(('oracle',), DatabaseLocation)
 location_builder.register(('postgresql',), DatabaseLocation)
 location_builder.register(('s3a',), Location)
+location_builder.register(('s3',), Location)
 
 
 def build_location(url, *largs, **kwargs):
