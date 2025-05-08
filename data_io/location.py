@@ -98,7 +98,7 @@ class LocationBuilder(URLKeyBuilder):
         path = urlparse(url)
 
         #checking if port is empty
-        if((path.port == None) and (path.scheme != 's3a')) and (path.scheme != 's3')):
+        if((path.port == None) and (path.scheme != 's3a') and (path.scheme != 's3')):
             user = urlparse(url)
             user = user._replace(netloc=
             user.netloc + ':' + default_port[user.scheme])
