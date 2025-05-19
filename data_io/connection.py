@@ -83,7 +83,7 @@ class BaseConnection(abc.ABC):
 
         raise NotImplementedError
 
-    def _check_source(self, *largs, **kwargs):
+    def check_source(self, filter_str, *largs, **kwargs):
         """
         Validates read and catches reasons for failure. Proved useful
         when running source existence and has_data.
@@ -108,6 +108,9 @@ class BaseConnection(abc.ABC):
               .read(
                 *largs,
                 **kwargs
+              )
+              .filter(
+                sf.expr(filter_str)
               )
             )
 
@@ -142,35 +145,6 @@ class BaseConnection(abc.ABC):
                 f'{self.url}: Exists: {exists}, Has Data: {has_data}')
 
         return exists, has_data
-
-
-    def check_filter(self, filter_str=None, **kwargs):
-        """
-        Examine the return of connection with specific filter applied.
-
-        Note that small changes are required for S3 (and other non-SQL) reads.
-
-        Args:
-          filter_str (str): filter string to test
-
-        Returns:
-          exists, has_data
-        """
-
-        # Build the query string
-        query = f"""
-        SELECT
-          1
-        FROM
-          {self.location.schema}.{self.location.table}
-        {f'WHERE {filter_str}' if filter_str is not None else ''}
-        LIMIT 1"""
-
-        logging.info(f"Checking filter '{filter_str}'")
-
-        # Check the source with a filter in place.
-        # We opt to use a SQL query so we push work back to the backend (when possible)
-        return self._check_source(query=query)
 
 
 class ConnectionBuilder(URLKeyBuilder):
@@ -606,68 +580,6 @@ class S3Connection(DatabaseConnection):
     Read form and write to S3 buckets.
     """
 
-    def _check_source(self, filter_str, **kwargs):
-        """
-        Validates read and catches reasons for failure. Proved useful
-        when running source existence and has_data.
-
-        Args:
-          largs/kwargs passed through to self.read()
-
-        Returns:
-          exists, has_data (tuple)
-        """
-
-        n_rows = 0
-        exists = False
-
-        try:
-
-            logging.info(f'Verifying {self.url} exists.')
-
-            # This will fail of the table / source doesn't exist
-            data_frame = (
-              self
-              .read(
-                **kwargs
-              )
-              .filter(
-                sf.expr(filter_str)
-              )
-            )
-
-            # We only need a single row to confirm existence and data integrity
-            # (for now). This can be expanded in time.
-            n_rows = len(
-              data_frame
-              .take(1)
-            )
-
-            # If the read works, then the source exists
-            exists = True
-
-#         except java.sql.SQLException as e:
-#             # Note that this exception handling isn't awesome at the moment.
-#             # This will also trigger if there are errors in the SQL statement itself.
-#             logging.exception(f'{self.url} does NOT exist.')
-#             logging.debug(e)
-
-        except Exception as e:
-            
-            # Error handling
-            logging.info(f'Unexpected Exception. Does your source exist?:\n\n')
-            logging.exception(e)
-
-        finally:
-            # exists and has_data returned
-            has_data = n_rows > 0
-
-            # Print status for debugging
-            logging.debug(
-                f'{self.url}: Exists: {exists}, Has Data: {has_data}')
-
-        return exists, has_data
-
     def check_filter(self, filter_str=None, **kwargs):
         """
         Examine the return of connection with specific filter applied.
@@ -692,7 +604,7 @@ class S3Connection(DatabaseConnection):
 #             )
 #         )
 
-        return self._check_source(filter_str)
+        return self.check_source(filter_str)
 
     def read(
         self,
@@ -786,34 +698,6 @@ class OracleConnection(DatabaseConnection):
         data = reader.load()
 
         return data
-
-    def check_filter(self, filter_str=None, **kwargs):
-        """
-        Examine the return of connection with specific filter applied.
-
-        Note that small changes are required for S3 (and other non-SQL) reads.
-
-        Args:
-          filter_str (str): filter string to test
-
-        Returns:
-          exists, has_data ()
-        """
-
-        # Build the query string
-        query = f"""
-        SELECT
-          1
-        FROM
-          {self.location.schema}.{self.location.table}
-        {f'WHERE {filter_str} AND' if filter_str is not None else ''}
-        ROWNUM=1"""
-
-        logging.info(f"Checking filter '{filter_str}'")
-
-        # Check the source with a filter in place.
-        # We opt to use a SQL query so we push work back to the backend (when possible)
-        return self._check_source(query=query)
 
     def write(
         self,
