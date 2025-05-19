@@ -83,7 +83,7 @@ class BaseConnection(abc.ABC):
 
         raise NotImplementedError
 
-    def check_source(self, filter_str, **kwargs):
+    def check_source(self, filter_str, *largs, **kwargs):
         """
         Validates read and catches reasons for failure. Proved useful
         when running source existence and has_data.
@@ -106,6 +106,7 @@ class BaseConnection(abc.ABC):
             data_frame = (
               self
               .read(
+                *largs,
                 **kwargs
               )
               .filter(
