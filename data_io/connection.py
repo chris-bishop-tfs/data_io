@@ -345,8 +345,23 @@ class DatabaseConnection(BaseConnection):
           not(isinstance(self, S3Connection))
           and is_read
           and ('query' not in options.keys() and 'dbtable' not in options.keys())
+          and (self.location.table is not None)
         ):
             options['query'] = f'SELECT * FROM {self.location.schema}.{self.location.table}'
+        elif (
+          not (isinstance(self, S3Connection))
+          and is_read
+          and ('query' not in options.keys() and 'dbtable' in options.keys())
+        ):
+            options['query'] = f'SELECT * FROM {options["dbtable"]}'
+        elif (
+          not (isinstance(self, S3Connection))
+          and is_read
+          and self.location.table is not None
+        ):
+            options['dbtable'] = f'{self.location.schema}.{self.location.table}'
+        else:
+            raise ValueError("Invalid options configuration, please specify 'dbtable' or 'query'")
 
         return options
 
