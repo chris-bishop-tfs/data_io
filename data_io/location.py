@@ -135,8 +135,8 @@ class DatabaseLocation(Location):
         elif len(path_split) == 2:
             # db, table
             # Occurs with backends like Impala
-            self.db, self.table = path_split
-            self.schema = None
+            self.db, self.schema = path_split
+            self.table = None
 
         # Add another use case with just the database
         elif len(path_split) == 1:
