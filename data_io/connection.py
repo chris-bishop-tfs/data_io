@@ -235,8 +235,8 @@ class ConnectionBuilder(URLKeyBuilder):
                 .getDbutils()
                 .notebook()
                 .getContext()
-                .tags()
-                .apply('user')
+                .userName()
+                .get()
                 # XXX Hack incoming
                 .split('@')
                 [0]
