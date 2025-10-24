@@ -92,8 +92,11 @@ class LocationBuilder(URLKeyBuilder):
             default ports in builder
         '''
         # dictionary of defaul port
-        default_port = dict(oracle='1521', 
-        redshift='5439', postgresql='5432')
+        default_port = dict(
+            oracle='1521', 
+            redshift='5439',
+            postgresql='5432'
+        )
 
         path = urlparse(url)
 
