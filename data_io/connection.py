@@ -746,10 +746,19 @@ class OracleConnection(DatabaseConnection):
         return None
 
 class UCConnection(BaseConnection):
-    """Read and write Unity Catalog tables using the Databricks identity.
+    """Read and write Unity Catalog data using the Databricks identity.
 
-    The inherited ``url`` holds the table identifier directly; a UC table
-    does not need the location parsing or secret lookup used by JDBC sources.
+    The inherited ``url`` is either a fully qualified
+    ``catalog.schema.table`` or ``catalog.schema.view`` identifier, or the
+    generic value ``"UC"``.
+
+    A fully qualified identifier is the default target for reads and writes.
+    A generic connection requires an explicit query for reads and a table
+    argument for writes. An explicit query or table argument can also be
+    supplied when the connection has a default identifier.
+
+    Unity Catalog access uses the active Databricks execution identity; this
+    connection does not perform database credential or location lookup.
     """
 
     @property
