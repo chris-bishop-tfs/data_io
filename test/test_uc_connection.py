@@ -27,14 +27,22 @@ UC_TABLE = 'ccg_cdl_federated.marketing_dm.dim_quotations_history_vw'
 
 
 class UCConnectionTests(unittest.TestCase):
-    def test_uc_routing_does_not_resolve_secrets_or_validate_identifier(self):
-        """Route UC identifiers without looking up database credentials."""
+    def test_uc_routing_does_not_resolve_secrets(self):
+        """Route the UC keyword and three-part names without credentials."""
         with patch('data_io.connection.ConnectionBuilder.get_credentials') as credentials:
-            for identifier in (UC_TABLE, 'not..valid'):
+            for identifier in (UC_TABLE, 'UC', 'missing_catalog.missing_schema.missing_table'):
                 connection = build_connection(identifier)
                 self.assertIsInstance(connection, UCConnection)
                 self.assertEqual(connection.url, identifier)
             credentials.assert_not_called()
+
+    def test_invalid_schemeless_identifiers_are_rejected(self):
+        """Reject scheme-less values other than UC or three-part names."""
+        for identifier in ('', 'uc', 'table', 'catalog.schema', 'not..valid',
+                           'a.b.c.d', 'a/b.c.d', 'a. .c'):
+            with self.subTest(identifier=identifier):
+                with self.assertRaises(ValueError):
+                    build_connection(identifier)
 
     def test_existing_backend_routing_and_database_credentials(self):
         """Keep URL-based backend routing and credential lookup unchanged."""
@@ -63,9 +71,8 @@ class UCConnectionTests(unittest.TestCase):
         spark.sql.side_effect = RuntimeError('permission denied')
         with self.assertRaisesRegex(RuntimeError, 'permission denied'):
             connection.read(spark=spark, query='')
-        spark.read.table.side_effect = ValueError('invalid identifier')
-        with self.assertRaisesRegex(ValueError, 'invalid identifier'):
-            build_connection('not..valid').read(spark=spark)
+        spark.sql.side_effect = None
+        self.assertIs(build_connection('UC').read(spark=spark, query=query), spark.sql.return_value)
 
     def test_default_spark_session_is_used(self):
         """Obtain a Spark session when the caller does not provide one."""
@@ -74,6 +81,13 @@ class UCConnectionTests(unittest.TestCase):
             spark = spark_session.builder.getOrCreate.return_value
             self.assertIs(connection.read(), spark.read.table.return_value)
             spark.read.table.assert_called_once_with(UC_TABLE)
+
+    def test_generic_uc_read_requires_a_query(self):
+        """Require a query before creating a session for a generic connection."""
+        with patch('data_io.connection.SparkSession') as spark_session:
+            with self.assertRaisesRegex(ValueError, 'Provide a query'):
+                build_connection('UC').read()
+            spark_session.builder.getOrCreate.assert_not_called()
 
     def test_writes_forward_mode_options_and_errors(self):
         """Forward write modes and options and propagate write failures."""
@@ -89,6 +103,21 @@ class UCConnectionTests(unittest.TestCase):
         data.write.mode.return_value.options.return_value.saveAsTable.side_effect = RuntimeError('write denied')
         with self.assertRaisesRegex(RuntimeError, 'write denied'):
             connection.write(data, mode='overwrite')
+
+    def test_explicit_write_table_and_generic_connection(self):
+        """Use an explicit target and require one for a generic connection."""
+        data = MagicMock()
+        generic = build_connection('UC')
+        with self.assertRaisesRegex(ValueError, 'Provide a table'):
+            generic.write(data)
+        data.write.mode.assert_not_called()
+
+        target = 'example.ccgds.output_table'
+        generic.write(data, table=target, mode='append')
+        data.write.mode.return_value.options.return_value.saveAsTable.assert_called_once_with(target)
+        data.reset_mock()
+        build_connection(UC_TABLE).write(data, table=target)
+        data.write.mode.return_value.options.return_value.saveAsTable.assert_called_once_with(target)
 
     def test_data_source_checks_filter_rows_and_return_false_on_errors(self):
         """Check filtered data and preserve false-on-error behavior."""

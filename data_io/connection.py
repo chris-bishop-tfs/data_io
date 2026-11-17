@@ -4,6 +4,7 @@ from .builder import URLKeyBuilder
 import abc
 import io
 import logging
+import re
 from attr import attrs, attrib
 import urllib
 from pyspark.sql import SparkSession, DataFrame, DataFrameReader, DataFrameWriter
@@ -161,15 +162,27 @@ class ConnectionBuilder(URLKeyBuilder):
 
     def build(self, url: str) -> BaseConnection:
         """
-        Build a connection and return it
+        Build the connection selected by a data source identifier.
+
+        Args:
+            url: A database URI, an S3 path, a Unity Catalog table or view
+                identifier (catalog.schema.table or catalog.schema.view), or
+                "UC" for a Unity Catalog connection used with explicit queries.
+
+        Returns:
+            The connection for the specified data source.
         """
 
         # Get the key
         url_key = self.build_url_key(url)
 
-        # Unity Catalog identifiers have no URL scheme and need no credentials.
+        # UC accepts an explicit query connection or a three-part table name.
         if not url_key[0]:
-            return UCConnection(url)
+            if url == 'UC' or re.fullmatch(r'[^.\s/:?#]+\.[^.\s/:?#]+\.[^.\s/:?#]+', url):
+                return UCConnection(url)
+            raise ValueError(
+                "Expected 'UC' or a Unity Catalog identifier in catalog.schema.table format"
+            )
 
         # Generate a location object. This describes where the data are
         location = build_location(url)
@@ -771,8 +784,12 @@ class UCConnection(BaseConnection):
 
         Returns:
             A Spark DataFrame representing the table or query result. Spark
-            errors, including SQL and authorization errors, propagate.
+            errors, including SQL and authorization errors, propagate. A
+            generic "UC" connection requires an explicit query.
         """
+        if self.url == 'UC' and query is None:
+            raise ValueError('Provide a query when reading from a generic UC connection')
+
         if spark is None:
             spark = SparkSession.builder.getOrCreate()
 
@@ -780,21 +797,36 @@ class UCConnection(BaseConnection):
             return spark.read.table(self.url)
         return spark.sql(query)
 
-    def write(self, data: DataFrame, mode: str = 'errorifexists', **kwargs) -> None:
+    def write(
+        self,
+        data: DataFrame,
+        mode: str = 'errorifexists',
+        table: Optional[str] = None,
+        **kwargs
+    ) -> None:
         """Write a DataFrame to the configured Unity Catalog table.
 
         Spark's table writer can create a missing table when the executing
         identity has permission. The default mode rejects an existing table.
+        An explicit table overrides the connection's default identifier.
 
         Args:
             data: Spark DataFrame to write.
             mode: Spark save mode, such as errorifexists, append, or overwrite.
+            table: Target table identifier, or None to use the connection's
+                identifier. Required for a generic "UC" connection.
             **kwargs: Options passed to Spark's DataFrameWriter.
 
         Returns:
-            None. Spark write, schema, and authorization errors propagate.
+            None. Raises ValueError if a generic connection has no table;
+            Spark write, schema, and authorization errors propagate.
         """
-        data.write.mode(mode).options(**kwargs).saveAsTable(self.url)
+        if table is None:
+            if self.url == 'UC':
+                raise ValueError('Provide a table when writing from a generic UC connection')
+            table = self.url
+
+        data.write.mode(mode).options(**kwargs).saveAsTable(table)
 
     def check_filter(self, filter_str=None, **kwargs) -> Tuple[bool, bool]:
         """Check the configured table through the shared data-source interface.
