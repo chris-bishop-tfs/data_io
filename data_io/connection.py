@@ -167,6 +167,10 @@ class ConnectionBuilder(URLKeyBuilder):
         # Get the key
         url_key = self.build_url_key(url)
 
+        # Unity Catalog identifiers have no URL scheme and need no credentials.
+        if not url_key[0]:
+            return UCConnection(url)
+
         # Generate a location object. This describes where the data are
         location = build_location(url)
 
@@ -727,6 +731,89 @@ class OracleConnection(DatabaseConnection):
         writer.jdbc(self.jdbc_url, self.location.table)
 
         return None
+
+class UCConnection(BaseConnection):
+    """Read and write Unity Catalog tables using the Databricks identity.
+
+    The inherited ``url`` holds the table identifier directly; a UC table
+    does not need the location parsing or secret lookup used by JDBC sources.
+    """
+
+    @property
+    def location(self):
+        """Explain why the URL-based location interface is unavailable.
+
+        Returns:
+            Nothing; raises NotImplementedError because the inherited URL is a
+            Unity Catalog identifier, not a URL-based Location.
+        """
+        raise NotImplementedError("Unity Catalog identifiers do not use Location")
+
+    @property
+    def jdbc_url(self):
+        """Explain why a Unity Catalog connection has no JDBC URL.
+
+        Returns:
+            Nothing; raises NotImplementedError because Spark accesses the
+            table through the active Databricks session instead of JDBC.
+        """
+        raise NotImplementedError("Unity Catalog connections do not use JDBC URLs")
+
+    def read(self, spark: Optional[SparkSession] = None, query: Optional[str] = None) -> DataFrame:
+        """Read the configured table or execute a Spark SQL query.
+
+        A query is passed to Spark unchanged and can reference objects other
+        than this connection's table. Spark and Unity Catalog enforce access.
+
+        Args:
+            spark: Spark session to use, or None to obtain the current session.
+            query: Spark SQL query, or None to read the configured table.
+
+        Returns:
+            A Spark DataFrame representing the table or query result. Spark
+            errors, including SQL and authorization errors, propagate.
+        """
+        if spark is None:
+            spark = SparkSession.builder.getOrCreate()
+
+        if query is None:
+            return spark.read.table(self.url)
+        return spark.sql(query)
+
+    def write(self, data: DataFrame, mode: str = 'errorifexists', **kwargs) -> None:
+        """Write a DataFrame to the configured Unity Catalog table.
+
+        Spark's table writer can create a missing table when the executing
+        identity has permission. The default mode rejects an existing table.
+
+        Args:
+            data: Spark DataFrame to write.
+            mode: Spark save mode, such as errorifexists, append, or overwrite.
+            **kwargs: Options passed to Spark's DataFrameWriter.
+
+        Returns:
+            None. Spark write, schema, and authorization errors propagate.
+        """
+        data.write.mode(mode).options(**kwargs).saveAsTable(self.url)
+
+    def check_filter(self, filter_str=None, **kwargs) -> Tuple[bool, bool]:
+        """Check the configured table through the shared data-source interface.
+
+        This adapter uses the inherited check so UC checks match the existing
+        S3 behavior, including logging errors and returning false for failures.
+
+        Args:
+            filter_str: SQL filter expression, or None to check all rows.
+            **kwargs: Arguments passed through check_source to read, such as spark.
+
+        Returns:
+            A pair of booleans: whether the source was read successfully and
+            whether at least one row matched. Failures return (False, False).
+        """
+        if filter_str is None:
+            filter_str = 'TRUE'
+        return self.check_source(filter_str, **kwargs)
+
 
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
