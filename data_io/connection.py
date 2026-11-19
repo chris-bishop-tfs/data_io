@@ -4,6 +4,7 @@ from .builder import URLKeyBuilder
 import abc
 import io
 import logging
+import re
 from attr import attrs, attrib
 import urllib
 from pyspark.sql import SparkSession, DataFrame, DataFrameReader, DataFrameWriter
@@ -161,11 +162,27 @@ class ConnectionBuilder(URLKeyBuilder):
 
     def build(self, url: str) -> BaseConnection:
         """
-        Build a connection and return it
+        Build the connection selected by a data source identifier.
+
+        Args:
+            url: A database URI, an S3 path, a Unity Catalog table or view
+                identifier (catalog.schema.table or catalog.schema.view), or
+                "UC" for a Unity Catalog connection used with explicit queries.
+
+        Returns:
+            The connection for the specified data source.
         """
 
         # Get the key
         url_key = self.build_url_key(url)
+
+        # UC accepts an explicit query connection or a three-part table name.
+        if not url_key[0]:
+            if url == 'UC' or re.fullmatch(r'[^.\s/:?#]+\.[^.\s/:?#]+\.[^.\s/:?#]+', url):
+                return UCConnection(url)
+            raise ValueError(
+                "Expected 'UC' or a Unity Catalog identifier in catalog.schema.table format"
+            )
 
         # Generate a location object. This describes where the data are
         location = build_location(url)
@@ -727,6 +744,117 @@ class OracleConnection(DatabaseConnection):
         writer.jdbc(self.jdbc_url, self.location.table)
 
         return None
+
+class UCConnection(BaseConnection):
+    """Read and write Unity Catalog data using the Databricks identity.
+
+    The inherited ``url`` is either a fully qualified
+    ``catalog.schema.table`` or ``catalog.schema.view`` identifier, or the
+    generic value ``"UC"``.
+
+    A fully qualified identifier is the default target for reads and writes.
+    A generic connection requires an explicit query for reads and a table
+    argument for writes. An explicit query or table argument can also be
+    supplied when the connection has a default identifier.
+
+    Unity Catalog access uses the active Databricks execution identity; this
+    connection does not perform database credential or location lookup.
+    """
+
+    @property
+    def location(self):
+        """Explain why the URL-based location interface is unavailable.
+
+        Returns:
+            Nothing; raises NotImplementedError because the inherited URL is a
+            Unity Catalog identifier, not a URL-based Location.
+        """
+        raise NotImplementedError("Unity Catalog identifiers do not use Location")
+
+    @property
+    def jdbc_url(self):
+        """Explain why a Unity Catalog connection has no JDBC URL.
+
+        Returns:
+            Nothing; raises NotImplementedError because Spark accesses the
+            table through the active Databricks session instead of JDBC.
+        """
+        raise NotImplementedError("Unity Catalog connections do not use JDBC URLs")
+
+    def read(self, spark: Optional[SparkSession] = None, query: Optional[str] = None) -> DataFrame:
+        """Read the configured table or execute a Spark SQL query.
+
+        A query is passed to Spark unchanged and can reference objects other
+        than this connection's table. Spark and Unity Catalog enforce access.
+
+        Args:
+            spark: Spark session to use, or None to obtain the current session.
+            query: Spark SQL query, or None to read the configured table.
+
+        Returns:
+            A Spark DataFrame representing the table or query result. Spark
+            errors, including SQL and authorization errors, propagate. A
+            generic "UC" connection requires an explicit query.
+        """
+        if self.url == 'UC' and query is None:
+            raise ValueError('Provide a query when reading from a generic UC connection')
+
+        if spark is None:
+            spark = SparkSession.builder.getOrCreate()
+
+        if query is None:
+            return spark.read.table(self.url)
+        return spark.sql(query)
+
+    def write(
+        self,
+        data: DataFrame,
+        mode: str = 'errorifexists',
+        table: Optional[str] = None,
+        **kwargs
+    ) -> None:
+        """Write a DataFrame to the configured Unity Catalog table.
+
+        Spark's table writer can create a missing table when the executing
+        identity has permission. The default mode rejects an existing table.
+        An explicit table overrides the connection's default identifier.
+
+        Args:
+            data: Spark DataFrame to write.
+            mode: Spark save mode, such as errorifexists, append, or overwrite.
+            table: Target table identifier, or None to use the connection's
+                identifier. Required for a generic "UC" connection.
+            **kwargs: Options passed to Spark's DataFrameWriter.
+
+        Returns:
+            None. Raises ValueError if a generic connection has no table;
+            Spark write, schema, and authorization errors propagate.
+        """
+        if table is None:
+            if self.url == 'UC':
+                raise ValueError('Provide a table when writing from a generic UC connection')
+            table = self.url
+
+        data.write.mode(mode).options(**kwargs).saveAsTable(table)
+
+    def check_filter(self, filter_str=None, **kwargs) -> Tuple[bool, bool]:
+        """Check the configured table through the shared data-source interface.
+
+        This adapter uses the inherited check so UC checks match the existing
+        S3 behavior, including logging errors and returning false for failures.
+
+        Args:
+            filter_str: SQL filter expression, or None to check all rows.
+            **kwargs: Arguments passed through check_source to read, such as spark.
+
+        Returns:
+            A pair of booleans: whether the source was read successfully and
+            whether at least one row matched. Failures return (False, False).
+        """
+        if filter_str is None:
+            filter_str = 'TRUE'
+        return self.check_source(filter_str, **kwargs)
+
 
 # Connections are the workhorse of this library
 connection_builder = ConnectionBuilder()
